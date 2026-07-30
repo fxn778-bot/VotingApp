@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AGM Voting — register authenticated</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F5F5F2;--sf:#fff;--s2:#F5F5F2;--tx:#1a1a18;--t2:#6b6b67;--t3:#9b9b96;
+--bd:rgba(0,0,0,.12);--bd2:rgba(0,0,0,.22);--rm:8px;--rl:12px;
+--fs:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;--fm:'SF Mono',Consolas,monospace}
+@media(prefers-color-scheme:dark){:root{--bg:#242421;--sf:#1e1e1c;--s2:#2a2a27;--tx:#e8e8e2;--t2:#9a9a94;--t3:#666660;--bd:rgba(255,255,255,.1);--bd2:rgba(255,255,255,.2)}}
+body{font-family:var(--fs);background:var(--bg);color:var(--tx);font-size:15px;line-height:1.5;min-height:100vh}
+button{font-family:var(--fs);font-size:13px;padding:7px 14px;border:.5px solid var(--bd2);background:var(--sf);color:var(--tx);border-radius:var(--rm);cursor:pointer}
+button:hover{background:var(--s2)}button:disabled{opacity:.4;cursor:not-allowed}
+input,select,textarea{font-family:var(--fs);font-size:13px;padding:8px 10px;border:.5px solid var(--bd);border-radius:var(--rm);background:var(--sf);color:var(--tx);width:100%;outline:none}
+input:focus,select:focus,textarea:focus{border-color:#378ADD}
+textarea{font-family:var(--fm);line-height:1.6;resize:vertical}
+.ph{background:var(--sf);border-bottom:.5px solid var(--bd);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:9}
+.ps{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.04em}
+.wr{max-width:700px;margin:0 auto;padding:16px 16px 60px}
+.cd{background:var(--sf);border:.5px solid var(--bd);border-radius:var(--rl);padding:16px 18px;margin-bottom:12px}
+.ct{font-size:13px;font-weight:500;margin-bottom:12px}
+.lb{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:4px}
+.fg{margin-bottom:12px}.ts{font-size:12px;color:var(--t2)}
+.bg{font-size:11px;font-weight:500;padding:2px 9px;border-radius:var(--rm);display:inline-block}
+.bl{background:#E6F1FB;color:#0C447C}.pu{background:#EEEDFE;color:#3C3489}.gr{background:#EAF3DE;color:#27500A}
+.am{background:#FAEEDA;color:#633806}.gy{background:var(--s2);color:var(--t2)}.rd{background:#FCEBEB;color:#791F1F}
+.al{padding:10px 13px;border-radius:var(--rm);font-size:12px;margin-bottom:11px;line-height:1.55}
+.ai{background:#E6F1FB;color:#0C447C}.aw{background:#FAEEDA;color:#633806}
+.ad{background:#FCEBEB;color:#791F1F}.as{background:#EAF3DE;color:#27500A}
+.tb{display:flex;border-bottom:.5px solid var(--bd);margin-bottom:18px;overflow-x:auto}
+.tt{font-size:13px;padding:9px 14px;border:none;border-bottom:2.5px solid transparent;background:none;color:var(--t2);white-space:nowrap;border-radius:0}
+.tt:hover{background:none;color:var(--tx)}
+.tt.on{color:var(--tx);border-bottom-color:var(--tx);font-weight:500}
+.bi{background:var(--s2);border:.5px solid var(--bd);border-radius:var(--rm);padding:12px 14px;margin-bottom:9px}
+.og{font-size:11px;background:var(--sf);border:.5px solid var(--bd);padding:3px 8px;border-radius:var(--rm);display:inline-flex;align-items:center;gap:4px;margin:2px}
+.xb{background:none;border:none;color:var(--t3);font-size:10px;padding:0;line-height:1}
+.r2{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.mc{background:var(--s2);border-radius:var(--rm);padding:12px;flex:1;min-width:92px;text-align:center}
+.mv{font-size:25px;font-weight:500;line-height:1.1}
+.ml{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;margin-top:3px}
+.qb{background:var(--s2);border-radius:var(--rl);padding:18px;text-align:center}
+.qw{display:inline-block;background:#fff;padding:10px;border-radius:var(--rm);margin:10px 0}
+.qu{font-family:var(--fm);font-size:10px;color:var(--t3);word-break:break-all;padding:7px 9px;background:var(--sf);border:.5px solid var(--bd);border-radius:var(--rm);text-align:left}
+.rb{margin-bottom:9px}
+.rh{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.rt{height:18px;background:var(--s2);border-radius:4px;overflow:hidden}
+.rf{height:100%;border-radius:4px;transition:width .4s}
+.sd{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.lbx{display:flex;align-items:center;gap:13px;width:100%;padding:15px 18px;background:var(--sf);border:.5px solid var(--bd);border-radius:var(--rl);text-align:left;margin-bottom:9px}
+.vo{width:100%;text-align:left;padding:12px 14px;border:.5px solid var(--bd);border-radius:var(--rm);background:var(--sf);font-size:13px;display:flex;align-items:center;gap:10px;margin-bottom:6px;color:var(--tx)}
+.vo.se{border-color:#1D9E75;background:#E1F5EE;color:#085041}
+.vr{width:18px;height:18px;border:1.5px solid var(--bd2);flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.vr.sq{border-radius:4px}
+.vo.se .vr{border-color:#1D9E75;background:#1D9E75}
+.vd{width:7px;height:7px;border-radius:50%;background:#fff}
+.vp{display:flex;gap:3px;margin-bottom:14px}
+.vs{height:3px;flex:1;border-radius:2px;background:var(--bd)}
+.vs.dn{background:#639922}.vs.cu{background:#1D9E75}
+.br{display:flex;gap:8px;flex-wrap:wrap}
+table.rg{width:100%;font-size:12px;border-collapse:collapse;table-layout:fixed}
+table.rg th{text-align:left;font-size:10px;text-transform:uppercase;color:var(--t2);font-weight:400;padding:6px 4px;border-bottom:.5px solid var(--bd)}
+table.rg td{padding:7px 4px;border-bottom:.5px solid var(--bd);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk{font-family:var(--fm);letter-spacing:.06em}
+.sc{max-height:340px;overflow-y:auto}
+.big{width:100%;padding:13px;font-size:14px;font-weight:500;border-radius:var(--rm)}
+</style>
+</head>
+<body>
+<div id="app" style="padding:40px;text-align:center;color:#888">Loading…</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+/* ============================================================
+   BACKEND CONFIGURATION
+
+   Leave these blank to run on browser localStorage. That works
+   for testing on ONE device only — votes will not sync.
+
+   For a real meeting, create a Supabase project, run
+   agm-voting-schema.sql in the SQL editor, then paste your
+   project URL and anon key here. Votes then sync across every
+   device, and the register/ballot separation is enforced by
+   the database rather than by this file.
+   ============================================================ */
+const SUPABASE_URL = "";
+const SUPABASE_ANON_KEY = "";
+
+const HOSTED = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+/* ---------- storage layer ---------- */
+const LS = {
+  g(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch{return null}},
+  s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+const KEY={cfg:'agm_cfg',phase:'agm_phase',reg:'agm_reg',tal:'agm_tal'};
+
+const Store = {
+  async getConfig(){ return LS.g(KEY.cfg) || null; },
+  async setConfig(c){ LS.s(KEY.cfg,c); },
+  async getPhase(){ return LS.g(KEY.phase) || 'setup'; },
+  async setPhase(p){ LS.s(KEY.phase,p); },
+  async getRegister(){ return LS.g(KEY.reg) || {}; },
+  async setRegister(r){ LS.s(KEY.reg,r); },
+  async getTally(){ return LS.g(KEY.tal) || {}; },
+
+  async verifyToken(tok){
+    const reg = await Store.getRegister();
+    const m = reg[tok];
+    if(!m) return {ok:false,error:'token_not_found'};
+    if(!m.eligible) return {ok:false,error:'not_eligible'};
+    if(m.voted) return {ok:false,error:'token_already_used'};
+    return {ok:true,name:m.name};
+  },
+
+  async castBallot(tok, selections){
+    const phase = await Store.getPhase();
+    if(phase!=='voting') return {ok:false,error:'voting_not_open'};
+    const reg = await Store.getRegister();
+    const m = reg[tok];
+    if(!m) return {ok:false,error:'token_not_found'};
+    if(!m.eligible) return {ok:false,error:'not_eligible'};
+    if(m.voted) return {ok:false,error:'token_already_used'};
+    const tal = await Store.getTally();
+    for(const [item,choices] of Object.entries(selections)){
+      if(!tal[item]) tal[item]={};
+      choices.forEach(c=>{ tal[item][c]=(tal[item][c]||0)+1; });
+    }
+    LS.s(KEY.tal,tal);
+    reg[tok].voted=true; reg[tok].votedAt=Date.now();
+    LS.s(KEY.reg,reg);
+    return {ok:true};
+  }
+};
+
+/* If Supabase is configured, swap the four vote-critical methods for
+   RPC calls. Everything else in the app is unchanged. */
+if(HOSTED){
+  const hdr={'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json'};
+  const rpc=async(fn,body)=>{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{method:'POST',headers:hdr,body:JSON.stringify(body||{})});
+    return r.json();
+  };
+  Store.verifyToken = t => rpc('verify_token',{p_token:t});
+  Store.castBallot  = (t,s) => rpc('cast_ballot',{p_token:t,p_selections:s});
+  Store.getTally = async () => {
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/tally?select=*`,{headers:hdr});
+    const rows=await r.json(); const out={};
+    (rows||[]).forEach(x=>{ if(!out[x.item_id])out[x.item_id]={}; out[x.item_id][x.choice]=x.votes; });
+    return out;
+  };
+  Store.getPhase = async () => {
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/meeting_config?id=eq.1&select=phase`,{headers:hdr});
+    const rows=await r.json(); return (rows&&rows[0]&&rows[0].phase)||'setup';
+  };
+  Store.getConfig = async () => {
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/meeting_config?id=eq.1&select=*`,{headers:hdr});
+    const rows=await r.json(); const c=rows&&rows[0];
+    return c?{org:c.org_name,mtg:c.meeting_name,quorum:c.quorum,items:c.items||[]}:null;
+  };
+}
+
+/* ---------- state ---------- */
+const ALPHA='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const BARS=['#185FA5','#639922','#D85A30','#BA7517','#534AB7','#0F6E56','#993556'];
+const DEFAULTS={org:'My Community Group',mtg:'Annual General Meeting',quorum:0,items:[]};
+
+let CFG={...DEFAULTS}, PHASE='setup', REG={}, TAL={};
+let screen='land', tab='ballot', vstep='entry', vtoken='', vname='', vidx=0, vsel={}, verr='', msg='', showTok=false, poll=null;
+
+const uid=()=>'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function newToken(){let t='';for(let i=0;i<6;i++)t+=ALPHA[Math.floor(Math.random()*ALPHA.length)];return t.slice(0,3)+'-'+t.slice(3);}
+function normTok(raw){const s=String(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'');return s.length===6?s.slice(0,3)+'-'+s.slice(3):s;}
+function stats(){const m=Object.values(REG);return{total:m.length,eligible:m.filter(x=>x.eligible).length,voted:m.filter(x=>x.voted).length};}
+
+async function boot(){
+  const c=await Store.getConfig(); if(c) CFG=Object.assign({},DEFAULTS,c);
+  PHASE=await Store.getPhase();
+  REG=await Store.getRegister();
+  TAL=await Store.getTally();
+  render();
+}
+function startPoll(){
+  if(poll) clearInterval(poll);
+  poll=setInterval(async()=>{
+    const p=await Store.getPhase(), t=await Store.getTally(), r=await Store.getRegister();
+    let ch=false;
+    if(p!==PHASE){PHASE=p;ch=true;}
+    if(JSON.stringify(t)!==JSON.stringify(TAL)){TAL=t;ch=true;}
+    if(JSON.stringify(r)!==JSON.stringify(REG)){REG=r;ch=true;}
+    if(!ch) return;
+    if(screen==='admin') render();
+    else if(screen==='voter'&&vstep==='wait'){
+      if(PHASE==='voting'){vidx=0;vsel={};vstep='ballot';render();}
+      else if(PHASE==='closed'){vstep='closed';render();}
+    }
+  },2500);
+}
+function nav(s){ if(s==='admin')startPoll(); else if(poll){clearInterval(poll);poll=null;} screen=s; render(); }
+function setTab(t){ tab=t; render(); }
+
+function render(){
+  document.getElementById('app').outerHTML='<div id="app">'+
+    (screen==='land'?vLand():screen==='admin'?vAdmin():vVoter())+'</div>';
+  if(screen==='admin'&&tab==='session') setTimeout(drawQR,60);
+}
+function drawQR(){
+  const el=document.getElementById('qrbox'); if(!el||typeof QRCode==='undefined')return;
+  el.innerHTML='';
+  try{ new QRCode(el,{text:location.href,width:190,height:190,correctLevel:QRCode.CorrectLevel.M}); }
+  catch(e){ el.innerHTML='<span class="ts">QR unavailable</span>'; }
+}
+
+/* ---------- landing ---------- */
+function vLand(){
+  const warn = HOSTED ? '' :
+    `<div class="al aw" style="text-align:left;margin-top:22px">Running on browser storage. Votes stay on this device only. Configure Supabase at the top of this file before using it for a real meeting.</div>`;
+  return `<div style="padding:38px 18px;max-width:440px;margin:0 auto;text-align:center">
+  <div style="font-size:26px;font-weight:500;margin-bottom:5px">AGM Voting</div>
+  <div class="ts" style="margin-bottom:26px">Register-authenticated ballots &bull; one member, one vote</div>
+  <button class="lbx" onclick="nav('admin')"><span style="font-size:18px;color:var(--t2)">&#9881;</span>
+  <span><span style="font-size:14px;font-weight:500;display:block">Administrator</span>
+  <span class="ts" style="display:block;margin-top:2px">Register, ballot, session, results</span></span></button>
+  <button class="lbx" onclick="nav('voter')"><span style="font-size:18px;color:var(--t2)">&#10003;</span>
+  <span><span style="font-size:14px;font-weight:500;display:block">Cast my vote</span>
+  <span class="ts" style="display:block;margin-top:2px">Members: enter your voting token</span></span></button>
+  ${warn}</div>`;
+}
+
+/* ---------- admin ---------- */
+function vAdmin(){
+  const lbl={setup:'Setup',voting:'Voting open',closed:'Closed'}[PHASE];
+  const cls={setup:'gy',voting:'gr',closed:'am'}[PHASE];
+  const body = tab==='ballot'?tabBallot():tab==='register'?tabRegister():tab==='session'?tabSession():tabResults();
+  return `<div class="ph"><div><div class="ps">${esc(CFG.org)}</div>
+  <div style="font-size:15px;font-weight:500">Admin panel</div></div>
+  <div style="display:flex;gap:8px;align-items:center"><span class="bg ${cls}">${lbl}</span>
+  <button onclick="nav('land')" style="font-size:12px">&#8592;</button></div></div>
+  <div class="wr"><div class="tb">
+  <button class="tt ${tab==='ballot'?'on':''}" onclick="setTab('ballot')">Ballot</button>
+  <button class="tt ${tab==='register'?'on':''}" onclick="setTab('register')">Register</button>
+  <button class="tt ${tab==='session'?'on':''}" onclick="setTab('session')">Session</button>
+  <button class="tt ${tab==='results'?'on':''}" onclick="setTab('results')">Results</button>
+  </div>${body}</div>`;
+}
+
+function tabBallot(){
+  const lock = PHASE!=='setup';
+  const items = CFG.items.map(it=>{
+    const opts = it.options.map(o=>`<span class="og">${esc(o)}${lock?'':`<button class="xb" onclick="delOpt('${it.id}','${esc(o)}')">&#10005;</button>`}</span>`).join('');
+    const addRow = (!lock&&it.type==='election')?`<div style="display:flex;gap:8px;margin-top:7px">
+      <input type="text" id="nc_${it.id}" placeholder="Add candidate…" style="flex:1;font-size:12px"
+        onkeydown="if(event.key==='Enter')addOpt('${it.id}')"><button onclick="addOpt('${it.id}')">Add</button></div>`:'';
+    const seats = it.type==='election'?`<div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+      <label class="lb" style="margin:0">Seats</label>
+      <input type="number" min="1" value="${it.seats}" ${lock?'disabled':''}
+        onchange="setItem('${it.id}','seats',Math.max(1,parseInt(this.value)||1))" style="width:56px;font-size:12px"></div>`:'';
+    const thr = it.type==='motion'?`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div><label class="lb">Threshold</label><select ${lock?'disabled':''} onchange="setItem('${it.id}','thr',this.value)" style="font-size:12px">
+      <option value="majority"${it.thr==='majority'?' selected':''}>Simple majority</option>
+      <option value="two_thirds"${it.thr==='two_thirds'?' selected':''}>Two-thirds</option>
+      <option value="three_quarters"${it.thr==='three_quarters'?' selected':''}>Three-quarters</option></select></div>
+      <div><label class="lb">Abstentions</label><select ${lock?'disabled':''} onchange="setItem('${it.id}','abs',this.value==='1')" style="font-size:12px">
+      <option value="0"${it.abs?'':' selected'}>Excluded from denominator</option>
+      <option value="1"${it.abs?' selected':''}>Counted in denominator</option></select></div></div>`:'';
+    return `<div class="bi"><div style="display:flex;justify-content:space-between;margin-bottom:10px">
+      <span class="bg ${it.type==='election'?'bl':'pu'}">${it.type==='election'?'Election':'Motion'}</span>
+      ${lock?'':`<button onclick="delItem('${it.id}')" style="font-size:11px;background:none;border:none;color:var(--t2)">Remove</button>`}</div>
+      <div class="fg"><label class="lb">Title</label>
+      <input type="text" value="${esc(it.title)}" ${lock?'disabled':''} onchange="setItem('${it.id}','title',this.value)" style="font-size:12px"></div>
+      ${seats}${thr}
+      <div class="fg"><label class="lb">${it.type==='election'?'Candidates':'Options'}</label><div>${opts}</div>${addRow}</div></div>`;
+  }).join('');
+  return `${lock?'<div class="al aw">Voting is active. Close voting to edit the ballot.</div>':''}
+  <div class="cd"><div class="ct">Meeting</div>
+  <div class="fg"><label class="lb">Organization</label><input type="text" value="${esc(CFG.org)}" ${lock?'disabled':''} onchange="CFG.org=this.value"></div>
+  <div class="fg"><label class="lb">Meeting name</label><input type="text" value="${esc(CFG.mtg)}" ${lock?'disabled':''} onchange="CFG.mtg=this.value"></div>
+  <div class="fg"><label class="lb">Quorum (members required)</label><input type="number" min="0" value="${CFG.quorum}" ${lock?'disabled':''} onchange="CFG.quorum=parseInt(this.value)||0" style="width:110px"></div></div>
+  <div class="cd"><div class="ct">Ballot items</div>
+  ${CFG.items.length?items:'<p class="ts" style="text-align:center;padding:18px 0">No ballot items yet.</p>'}
+  ${lock?'':`<div class="br" style="margin-top:8px"><button onclick="addItem('election')">+ Election</button><button onclick="addItem('motion')">+ Motion / bylaw</button></div>`}</div>
+  ${lock?'':`<button class="big" onclick="saveConfig()">${msg||'Save ballot configuration'}</button>`}`;
+}
+
+function tabRegister(){
+  const s=stats();
+  const rows=Object.entries(REG).sort((a,b)=>a[1].name.localeCompare(b[1].name)).map(([t,m])=>`<tr>
+    <td style="width:42%">${esc(m.name)}</td>
+    <td class="tk" style="width:22%">${showTok?esc(t):'•••-•••'}</td>
+    <td style="width:22%">${m.voted?'<span class="bg gr">Voted</span>':m.eligible?'<span class="bg gy">Not voted</span>':'<span class="bg rd">Suspended</span>'}</td>
+    <td style="width:14%;text-align:right"><button onclick="toggleEligible('${esc(t)}')" style="font-size:11px;padding:3px 8px">${m.eligible?'Suspend':'Restore'}</button></td></tr>`).join('');
+  return `<div class="r2">
+  <div class="mc"><div class="mv">${s.total}</div><div class="ml">On register</div></div>
+  <div class="mc"><div class="mv">${s.eligible}</div><div class="ml">Eligible</div></div>
+  <div class="mc"><div class="mv">${s.voted}</div><div class="ml">Voted</div></div></div>
+  <div class="cd"><div class="ct">Import members</div>
+  <div class="ts" style="margin-bottom:9px">One member per line — name only, or <span class="tk">Name, email</span>. Each receives a unique single-use token.</div>
+  <textarea id="imp" rows="5" placeholder="Jane Wanjiru&#10;Peter Otieno, peter@example.com&#10;Grace Mutiso"></textarea>
+  <div class="br" style="margin-top:9px"><button onclick="doImport()">Import &amp; generate tokens</button>
+  <button onclick="clearRegister()">Clear register</button></div>
+  ${msg?`<div class="al as" style="margin-top:10px">${esc(msg)}</div>`:''}</div>
+  <div class="cd"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px">
+  <div class="ct" style="margin:0">Members register</div>
+  <div class="br"><button onclick="showTok=!showTok;render()" style="font-size:11px">${showTok?'Hide tokens':'Show tokens'}</button>
+  <button onclick="exportTokens()" style="font-size:11px">Export slips</button></div></div>
+  ${s.total?`<div class="sc"><table class="rg"><thead><tr><th>Name</th><th>Token</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+    :'<p class="ts" style="text-align:center;padding:22px 0">No members imported yet.</p>'}</div>
+  <div class="al aw">Keep tokens hidden while this screen is projected. Distribute privately — a printed slip handed out at check-in works best, because check-in already establishes eligibility.</div>`;
+}
+
+function tabSession(){
+  const s=stats();
+  const dot={setup:'#bbb',voting:'#639922',closed:'#E24B4A'}[PHASE];
+  const txt={setup:'Not started',voting:'Voting is open',closed:'Voting closed'}[PHASE];
+  const met=CFG.quorum>0&&s.voted>=CFG.quorum;
+  const quorum=CFG.quorum>0?`<div class="al ${met?'as':'aw'}">Quorum ${CFG.quorum} required &bull; ${s.voted} participating &bull; ${met?'quorum met':(CFG.quorum-s.voted)+' more needed'}</div>`:'';
+  const blockers=[]; if(!CFG.items.length)blockers.push('add a ballot item'); if(!s.eligible)blockers.push('import the members register');
+  return `<div class="cd"><div class="ct">Session control</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div class="sd" style="background:${dot}"></div><span class="ts">${txt}</span></div>
+  ${quorum}<div class="br">
+  <button onclick="openVoting()" ${PHASE==='voting'||blockers.length?'disabled':''}>&#9654; Open voting</button>
+  <button onclick="closeVoting()" ${PHASE!=='voting'?'disabled':''}>&#9632; Close voting</button>
+  <button onclick="resetVotes()">&#8635; Reset votes</button></div>
+  ${blockers.length?`<div class="ts" style="margin-top:9px">Before opening: ${blockers.join('; ')}.</div>`:''}</div>
+  <div class="r2">
+  <div class="mc"><div class="mv">${s.voted}</div><div class="ml">Ballots cast</div></div>
+  <div class="mc"><div class="mv">${Math.max(0,s.eligible-s.voted)}</div><div class="ml">Yet to vote</div></div>
+  <div class="mc"><div class="mv">${CFG.items.length}</div><div class="ml">Items</div></div></div>
+  <div class="qb"><div style="font-size:14px;font-weight:500;margin-bottom:4px">Member access QR code</div>
+  <div class="ts">Project this. Members scan, then enter the token from their slip.</div>
+  <div class="qw"><div id="qrbox"></div></div>
+  <div class="qu">${esc(location.href)}</div>
+  <div class="br" style="margin-top:11px;justify-content:center"><button onclick="copyLink()">Copy link</button>
+  <button onclick="window.print()">Print</button></div></div>`;
+}
+
+function verdict(it,tally){
+  const f=tally['For']||0, a=tally['Against']||0, ab=tally['Abstain']||0;
+  const den = it.abs ? (f+a+ab) : (f+a);
+  if(!den) return null;
+  const frac={majority:.5,two_thirds:2/3,three_quarters:.75}[it.thr||'majority'];
+  const req = (it.thr==='majority'||!it.thr) ? Math.floor(den*.5)+1 : Math.ceil(den*frac);
+  return {den,req,pass:f>=req,f,a,ab};
+}
+
+function tabResults(){
+  const s=stats();
+  if(!CFG.items.length) return '<div class="cd ts" style="text-align:center;padding:28px">No ballot items configured.</div>';
+  const items=CFG.items.map(it=>{
+    const tv=TAL[it.id]||{};
+    const total=it.options.reduce((x,o)=>x+(tv[o]||0),0);
+    const ranked=it.options.map(o=>({o,c:tv[o]||0})).sort((a,b)=>b.c-a.c);
+    const winners = it.type==='election'&&total>0 ? ranked.slice(0,it.seats).filter(x=>x.c>0).map(x=>x.o) : [];
+    const bars=it.options.map((o,i)=>{
+      const c=tv[o]||0, pct=total?Math.round(c/total*100):0, w=winners.includes(o);
+      return `<div class="rb"><div class="rh"><span style="font-weight:${w?500:400}">${w?'▲ ':''}${esc(o)}</span>
+      <span class="ts">${c} (${pct}%)</span></div>
+      <div class="rt"><div class="rf" style="width:${pct}%;background:${BARS[i%BARS.length]}"></div></div></div>`;
+    }).join('');
+    let vd='';
+    if(it.type==='motion'){
+      const r=verdict(it,tv);
+      if(r) vd=`<div class="al ${r.pass?'as':'ad'}" style="margin:10px 0 0">
+      <strong>${r.pass?'CARRIED':'NOT CARRIED'}</strong> &bull;
+      ${{majority:'Simple majority',two_thirds:'Two-thirds',three_quarters:'Three-quarters'}[it.thr||'majority']} of ${r.den}
+      (abstentions ${it.abs?'counted':'excluded'}) &bull; ${r.req} needed, ${r.f} in favour</div>`;
+    } else if(winners.length){
+      vd=`<div class="al as" style="margin:10px 0 0"><strong>ELECTED:</strong> ${winners.map(esc).join(', ')}</div>`;
+    }
+    return `<div class="cd"><div style="display:flex;justify-content:space-between;margin-bottom:12px">
+    <div><span class="bg ${it.type==='election'?'bl':'pu'}">${it.type==='election'?'Election':'Motion'}</span>
+    <div style="font-size:13px;font-weight:500;margin-top:6px">${esc(it.title)}</div></div>
+    <div style="text-align:right"><div style="font-size:24px;font-weight:500;line-height:1">${total}</div><div class="ml">votes</div></div></div>
+    ${bars}${total?'':'<p class="ts" style="text-align:center;padding:6px 0">No votes yet</p>'}${vd}</div>`;
+  }).join('');
+  const turnout = s.eligible ? Math.round(s.voted/s.eligible*100) : 0;
+  return `<div class="r2">
+  <div class="mc"><div class="mv">${s.voted}</div><div class="ml">Ballots cast</div></div>
+  <div class="mc"><div class="mv">${s.eligible}</div><div class="ml">Eligible</div></div>
+  <div class="mc"><div class="mv">${turnout}%</div><div class="ml">Turnout</div></div></div>
+  ${items}<button class="big" onclick="exportResults()">Export results record</button>`;
+}
+
+/* ---------- voter ---------- */
+function vVoter(){
+  const head=`<div class="ph"><div><div class="ps">${esc(CFG.org)}</div>
+  <div style="font-size:15px;font-weight:500">${esc(CFG.mtg)}</div></div>
+  <button onclick="nav('land')" style="font-size:12px">&#8592;</button></div>`;
+  let body='';
+  if(vstep==='entry'){
+    body=`<div class="cd"><div style="font-size:16px;font-weight:500;margin-bottom:5px">Member verification</div>
+    <div class="ts" style="margin-bottom:14px">Enter the voting token issued to you at check-in. Each token may be used once.</div>
+    ${verr?`<div class="al ad">${esc(verr)}</div>`:''}
+    <div class="fg"><label class="lb">Voting token</label>
+    <input type="text" id="tokin" value="${esc(vtoken)}" placeholder="ABC-123" autocomplete="off"
+      style="font-family:var(--fm);font-size:19px;letter-spacing:.15em;text-align:center;padding:13px"
+      onkeydown="if(event.key==='Enter')doVerify()"></div>
+    <button class="big" onclick="doVerify()">Verify &amp; open ballot</button></div>`;
+  } else if(vstep==='wait'){
+    body=`<div class="cd" style="text-align:center;padding:38px 20px">
+    <div style="font-size:17px;font-weight:500;margin-bottom:7px">Voting not yet open</div>
+    <div class="ts" style="line-height:1.7">Verified as ${esc(vname)}.<br>Waiting for the chair to open voting.</div></div>`;
+  } else if(vstep==='closed'){
+    body=`<div class="cd" style="text-align:center;padding:38px 20px">
+    <div style="font-size:17px;font-weight:500;margin-bottom:7px">Voting has closed</div>
+    <div class="ts">Please see the meeting chair.</div></div>`;
+  } else if(vstep==='done'){
+    body=`<div class="cd" style="text-align:center;padding:38px 20px">
+    <div style="font-size:17px;font-weight:500;margin-bottom:7px">Ballot submitted</div>
+    <div class="ts" style="line-height:1.7">Thank you, ${esc(vname)}.<br>Your token is now used and cannot vote again.
+    <br><br>Your choices are not linked to your name.</div></div>`;
+  } else if(vstep==='ballot'){
+    const it=CFG.items[vidx];
+    if(!it) return head+'<div class="wr"></div>';
+    const multi = it.type==='election' && it.seats>1;
+    const cur = vsel[it.id]||[];
+    const last = vidx>=CFG.items.length-1;
+    const prog = CFG.items.map((_,i)=>`<div class="vs ${i<vidx?'dn':i===vidx?'cu':''}"></div>`).join('');
+    const opts = it.options.map(o=>{
+      const on=cur.includes(o);
+      return `<button class="vo ${on?'se':''}" onclick="pick('${it.id}','${esc(o)}',${multi},${it.seats})">
+      <div class="vr ${multi?'sq':''}">${on?'<div class="vd"></div>':''}</div>${esc(o)}</button>`;
+    }).join('');
+    const hint = multi ? `Select up to ${it.seats} — ${cur.length} selected`
+      : it.type==='election' ? 'Select one candidate' : 'Cast your vote on this motion';
+    body=`<div class="cd"><div class="vp">${prog}</div>
+    <div class="ts" style="font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Item ${vidx+1} of ${CFG.items.length}</div>
+    <div style="font-size:15px;font-weight:500;margin-bottom:4px">${esc(it.title)}</div>
+    <div class="ts" style="margin-bottom:13px">${hint}</div>${opts}
+    ${verr?`<div class="al ad" style="margin-top:10px">${esc(verr)}</div>`:''}
+    <button class="big" style="margin-top:10px" onclick="${last?'doSubmit()':'doNext()'}" ${cur.length?'':'disabled'}>${last?'Submit ballot':'Next'}</button></div>`;
+  }
+  return head+`<div style="max-width:480px;margin:0 auto;padding:16px">${body}</div>`;
+}
+
+/* ---------- ballot config actions ---------- */
+function addItem(type){
+  CFG.items.push({id:uid(),type,title:type==='election'?'Election: ':'Motion: ',seats:1,thr:'majority',abs:false,
+    options: type==='motion'?['For','Against','Abstain']:[]});
+  render();
+}
+function delItem(id){ CFG.items=CFG.items.filter(x=>x.id!==id); render(); }
+function setItem(id,f,v){ const it=CFG.items.find(x=>x.id===id); if(it){it[f]=v; if(f==='thr'||f==='abs')render();} }
+function addOpt(id){
+  const el=document.getElementById('nc_'+id); const v=(el&&el.value||'').trim(); if(!v)return;
+  const it=CFG.items.find(x=>x.id===id); if(it&&!it.options.includes(v)){ it.options.push(v); render(); }
+}
+function delOpt(id,o){ const it=CFG.items.find(x=>x.id===id); if(it){ it.options=it.options.filter(x=>x!==o); render(); } }
+async function saveConfig(){ await Store.setConfig(CFG); msg='Saved'; render(); setTimeout(()=>{msg='';render();},1800); }
+
+/* ---------- register actions ---------- */
+async function doImport(){
+  const el=document.getElementById('imp'); const raw=(el&&el.value||'').trim(); if(!raw)return;
+  const lines=raw.split('\n').map(x=>x.trim()).filter(Boolean);
+  const names=new Set(Object.values(REG).map(m=>m.name.toLowerCase()));
+  const toks=new Set(Object.keys(REG));
+  let added=0, dupes=0;
+  for(const line of lines){
+    const parts=line.split(',').map(x=>x.trim());
+    const name=parts[0]; if(!name) continue;
+    if(names.has(name.toLowerCase())){ dupes++; continue; }
+    let t,guard=0; do{ t=newToken(); guard++; } while(toks.has(t)&&guard<60);
+    toks.add(t); names.add(name.toLowerCase());
+    REG[t]={name,email:parts[1]||'',eligible:true,voted:false};
+    added++;
+  }
+  await Store.setRegister(REG);
+  msg=`${added} member${added!==1?'s':''} added${dupes?`, ${dupes} duplicate${dupes!==1?'s':''} skipped`:''}`;
+  render(); setTimeout(()=>{msg='';render();},3500);
+}
+async function clearRegister(){
+  if(!confirm('Clear the entire members register, including all tokens?'))return;
+  REG={}; await Store.setRegister(REG); render();
+}
+async function toggleEligible(t){ if(REG[t]){ REG[t].eligible=!REG[t].eligible; await Store.setRegister(REG); render(); } }
+function exportTokens(){
+  const lines=Object.entries(REG).sort((a,b)=>a[1].name.localeCompare(b[1].name))
+    .map(([t,m])=>`${m.name}${m.email?' <'+m.email+'>':''}\t${t}`);
+  const out=`${CFG.org} — ${CFG.mtg}\nVOTING TOKENS (CONFIDENTIAL)\n\n${lines.join('\n')}\n`;
+  copy(out,'Token slips copied. Paste into a document to print or mail-merge.');
+}
+
+/* ---------- session actions ---------- */
+async function openVoting(){ await Store.setConfig(CFG); await Store.setPhase('voting'); PHASE='voting'; render(); }
+async function closeVoting(){ await Store.setPhase('closed'); PHASE='closed'; render(); }
+async function resetVotes(){
+  if(!confirm('Reset all votes and re-enable every token? This cannot be undone.'))return;
+  TAL={}; LS.s(KEY.tal,{});
+  Object.keys(REG).forEach(t=>{REG[t].voted=false; delete REG[t].votedAt;});
+  await Store.setRegister(REG); render();
+}
+function copyLink(){ copy(location.href,'Link copied'); }
+function copy(text,note){
+  if(navigator.clipboard) navigator.clipboard.writeText(text).then(()=>alert(note)).catch(()=>alert('Copy failed'));
+  else alert('Clipboard unavailable');
+}
+
+function exportResults(){
+  const s=stats();
+  let o=`${CFG.org}\n${CFG.mtg}\nRESULTS RECORD\n\nEligible members: ${s.eligible}\nBallots cast: ${s.voted}\nQuorum required: ${CFG.quorum||'not set'}\n`;
+  CFG.items.forEach((it,n)=>{
+    const tv=TAL[it.id]||{};
+    const total=it.options.reduce((x,q)=>x+(tv[q]||0),0);
+    o+=`\n${'-'.repeat(46)}\nITEM ${n+1} — ${it.title}\n`;
+    it.options.forEach(q=>{ o+=`  ${q}: ${tv[q]||0}\n`; });
+    o+=`  Total: ${total}\n`;
+    if(it.type==='motion'){
+      const r=verdict(it,tv);
+      if(r) o+=`  Threshold: ${it.thr||'majority'} (abstentions ${it.abs?'counted':'excluded'})\n`
+            +`  Denominator: ${r.den} | Required: ${r.req} | In favour: ${r.f}\n`
+            +`  Result: ${r.pass?'CARRIED':'NOT CARRIED'}\n`;
+    } else {
+      const w=it.options.map(q=>({q,c:tv[q]||0})).sort((a,b)=>b.c-a.c).slice(0,it.seats).filter(x=>x.c>0);
+      o+=`  Seats: ${it.seats}\n  Elected: ${w.map(x=>x.q).join(', ')||'none'}\n`;
+    }
+  });
+  o+=`\n\nTeller: ____________________   Teller: ____________________\nSecretary: _________________   Date: ______________________\n`;
+  copy(o,'Results record copied to clipboard.');
+}
+
+/* ---------- voter actions ---------- */
+async function doVerify(){
+  verr='';
+  const el=document.getElementById('tokin');
+  const t=normTok(el&&el.value);
+  vtoken=t;
+  if(!t){ verr='Please enter your voting token.'; render(); return; }
+  const cfg=await Store.getConfig(); if(cfg) CFG=Object.assign({},DEFAULTS,cfg);
+  PHASE=await Store.getPhase();
+  REG=await Store.getRegister();
+  const r=await Store.verifyToken(t);
+  if(!r.ok){
+    verr={
+      token_not_found:'Token not recognised. Check your slip, or see the registration desk.',
+      not_eligible:'This membership is not eligible to vote at this meeting. Please see the registration desk.',
+      token_already_used:'This token has already been used to cast a ballot.'
+    }[r.error] || 'Verification failed. Please see the registration desk.';
+    render(); return;
+  }
+  vname=r.name||'';
+  if(PHASE==='setup'){ vstep='wait'; startPoll(); render(); return; }
+  if(PHASE==='closed'){ vstep='closed'; render(); return; }
+  vidx=0; vsel={}; vstep='ballot'; render();
+}
+function pick(id,o,multi,seats){
+  const cur=vsel[id]||[];
+  if(!multi) vsel[id] = (cur[0]===o) ? [] : [o];
+  else {
+    if(cur.includes(o)) vsel[id]=cur.filter(x=>x!==o);
+    else if(cur.length<seats) vsel[id]=[...cur,o];
+    else return;
+  }
+  render();
+}
+function doNext(){ vidx++; render(); }
+async function doSubmit(){
+  const r=await Store.castBallot(vtoken,vsel);
+  if(!r.ok){
+    verr={
+      voting_not_open:'Voting is no longer open.',
+      token_already_used:'This token has already been used.',
+      not_eligible:'This membership is not eligible to vote.',
+      token_not_found:'Token not recognised.'
+    }[r.error] || 'Submission failed. Please see the registration desk.';
+    if(r.error==='voting_not_open'){ vstep='closed'; }
+    render(); return;
+  }
+  TAL=await Store.getTally();
+  REG=await Store.getRegister();
+  vstep='done'; render();
+}
+
+boot();
+</script>
+</body>
+</html>
