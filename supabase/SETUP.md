@@ -5,6 +5,22 @@ Two parts: set up the meeting server once, then follow the run sheet on the day.
 Budget about 30 minutes for setup, and do it **at least a day before** the
 meeting — not in the room. Do a full rehearsal (§5) before it matters.
 
+> ## Status for the "AGM Voting App" project
+>
+> Already done:
+>
+> - **§1 Project** — created (`us-west-2`, PostgreSQL 17, healthy).
+> - **§2 Tables** — schema applied and verified against the live database:
+>   ballots refused before opening, three ballots cast, double-vote refused,
+>   unknown token refused, closed session refused. Verification data deleted
+>   afterwards; the register, ballots and audit log are empty and the phase is
+>   back to `setup`.
+> - **Security advisors** — the two ERROR-level findings are fixed. The
+>   remaining warnings are intentional; see §11.
+>
+> Still yours to do: **§3** (create the admin account — it needs the dashboard),
+> **§4** (put the URL and key in `.env.local`, then build), and **§5** (rehearse).
+
 ---
 
 ## 1. Create the Supabase project
@@ -125,8 +141,16 @@ result you cannot defend.
 **After**
 
 - Reconcile before announcing anything (§7).
-- Optionally publish results to members: run `grant select on tally to anon;`
-  in the SQL editor. Until you do, only signed-in admins can see totals.
+- Optionally publish results to members. Both statements are needed — the grant
+  alone does nothing, because the view runs as the caller and anon has no read
+  policy on `ballots`:
+
+  ```sql
+  alter view tally set (security_invoker = off);
+  grant select on tally to anon;
+  ```
+
+  Until you run these, only signed-in admins can see totals.
 
 ---
 
@@ -235,3 +259,36 @@ closes.
 - `verify_token` returns the member's name for a valid token, so anyone holding
   a slip can confirm whose it is. That is intended: it lets a member check they
   were handed the right slip.
+
+---
+
+## 11. Security advisor warnings you can ignore
+
+Supabase's linter (**Advisors → Security**) reports several warnings against
+this schema. All of them are this design working as intended. Recorded here so
+nobody "fixes" them into a broken meeting later.
+
+**`anon` can execute `cast_ballot` and `verify_token`.** That is the entire
+design. A voter is anonymous by definition — they hold a token, not an account.
+Both functions are `SECURITY DEFINER` precisely so a voter can cast a ballot
+without being able to read the tables the ballot lands in. Revoking these would
+mean nobody can vote.
+
+**`authenticated` can also execute them.** Harmless. An admin calling
+`cast_ballot` still needs a valid unused token, which makes them a voter like
+anyone else.
+
+**RLS policies on `meeting_config` and `members` are "always true" for
+`authenticated`.** Deliberate. This app has one meeting and one class of
+privileged user: the officers running it. There are no per-row owners to scope
+to. The meaningful boundary is anon vs authenticated, and that boundary is
+enforced. Only create admin accounts for people who should see the register.
+
+Two findings were real and are already fixed:
+
+- **Security definer views** (ERROR). `tally` and `participation` ran as their
+  owner, bypassing RLS. Both now use `security_invoker = on`.
+- **Mutable search_path** (WARN) on `generate_token`, now pinned.
+
+Run **Advisors → Security** yourself after any schema change. Expect the
+warnings above and nothing else; anything new deserves a look.

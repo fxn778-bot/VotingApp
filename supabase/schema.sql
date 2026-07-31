@@ -122,24 +122,28 @@ create index audit_time_idx on audit_events (occurred_at);
 -- ---------------------------------------------------------------------------
 -- 5. Tally view — admin-only until you choose to publish
 -- ---------------------------------------------------------------------------
-create view tally as
+create view tally with (security_invoker = on) as
 select item_id, choice, count(*)::int as votes
 from ballots
 group by item_id, choice;
 
 -- Participation without linkage
-create view participation as
+create view participation with (security_invoker = on) as
 select
   count(*) filter (where eligible)                    as eligible_count,
   count(*) filter (where eligible and has_voted)      as voted_count,
   count(*)                                            as register_count
 from members;
 
--- Views run as their owner, so they bypass RLS on the underlying tables.
--- Access is therefore controlled purely by the grants in section 8:
--- `tally` is NOT granted to anon, so members cannot watch running totals
--- while voting is still open. `participation` IS granted to anon — it
--- reveals only counts, which is what a voter needs to see quorum progress.
+-- security_invoker matters. From PostgreSQL 15 a view runs as its OWNER
+-- unless told otherwise, which silently bypasses RLS on the tables beneath
+-- it — Supabase's linter flags this as an error, correctly. Both views are
+-- read only by signed-in admins, and `authenticated` already holds select
+-- policies on ballots and members, so running them as the caller is strictly
+-- tighter and loses nothing.
+--
+-- Neither view is granted to anon: members cannot watch running totals while
+-- voting is still open (see section 8 for how to publish results afterwards).
 
 
 -- ---------------------------------------------------------------------------
@@ -289,11 +293,14 @@ grant select                         on audit_events   to authenticated;
 grant execute on function cast_ballot(text, jsonb)  to anon;
 grant execute on function verify_token(text)        to anon;
 
--- Tallies are for admins only while voting is open (see section 5).
+-- Tallies and turnout are for signed-in admins only (see section 5).
 grant select on tally         to authenticated;
-grant select on participation to anon, authenticated;
+grant select on participation to authenticated;
 
--- To publish results to members after the meeting, run:
+-- To publish results to members after the meeting, run BOTH of these — the
+-- grant alone is not enough once the view runs as the caller, because anon
+-- has no select policy on ballots:
+--   alter view tally set (security_invoker = off);
 --   grant select on tally to anon;
 
 
@@ -323,7 +330,9 @@ grant  execute on function close_voting() to authenticated;
 --     Alphabet excludes 0 O 1 I L to survive being read off a printed slip.
 -- ---------------------------------------------------------------------------
 create or replace function generate_token()
-returns text language plpgsql as $$
+returns text language plpgsql
+set search_path = public   -- pinned: removes any search_path shadowing risk
+as $$
 declare
   alphabet text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   result   text := '';
