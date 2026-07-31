@@ -29,8 +29,6 @@ export default function RegisterTab({ state, stats, actions }) {
     return a.name.localeCompare(b.name);
   });
 
-  const usesMemberNumbers = rows.some(([, m]) => !!m.memberNo);
-
   return (
     <>
       <StatTiles
@@ -45,10 +43,10 @@ export default function RegisterTab({ state, stats, actions }) {
         <div style={{ ...cardTitle, marginBottom: 9 }}>Import members</div>
         <div style={{ fontSize: 12, color: color.ink2, marginBottom: 9, lineHeight: 1.6 }}>
           One member per line. Paste your membership list as{" "}
-          <span style={{ fontFamily: mono }}>Number, Name</span> — the membership number becomes
-          that member&rsquo;s voting credential. Lines without a number (
-          <span style={{ fontFamily: mono }}>Name</span> or{" "}
-          <span style={{ fontFamily: mono }}>Name, email</span>) get a generated token instead.
+          <span style={{ fontFamily: mono }}>Number, Name</span>. Each member keeps their membership
+          number and is issued a single-use voting token — they need both to vote. Lines without a
+          number (<span style={{ fontFamily: mono }}>Name</span> or{" "}
+          <span style={{ fontFamily: mono }}>Name, email</span>) also work.
         </div>
         <textarea
           rows={4}
@@ -117,7 +115,7 @@ export default function RegisterTab({ state, stats, actions }) {
               <tr>
                 <th style={th("22%")}>Number</th>
                 <th style={th("30%")}>Name</th>
-                <th style={th("18%")}>Credential</th>
+                <th style={th("18%")}>Token</th>
                 <th style={th("16%")}>Status</th>
                 <th style={{ borderBottom: `1px solid ${color.line}`, width: "14%" }}></th>
               </tr>
@@ -139,17 +137,7 @@ export default function RegisterTab({ state, stats, actions }) {
                     {m.name}
                   </td>
                   <td style={{ ...td, fontFamily: mono, letterSpacing: ".03em" }}>
-                    {/* When the credential IS the membership number there is
-                        nothing to conceal — it is already in the Number column
-                        and printed on the member's card. Hiding it would only
-                        imply a secrecy the scheme does not have. */}
-                    {m.memberNo ? (
-                      <span style={{ color: color.ink3 }}>same as number</span>
-                    ) : state.showTok ? (
-                      tok
-                    ) : (
-                      "•••-•••"
-                    )}
+                    {state.showTok ? tok : "•••-•••"}
                   </td>
                   <td style={td}>
                     {m.voted ? (
@@ -185,19 +173,9 @@ export default function RegisterTab({ state, stats, actions }) {
           lineHeight: 1.55,
         }}
       >
-        {usesMemberNumbers ? (
-          <>
-            <strong>Membership numbers are the voting credential.</strong> They are sequential and
-            already known to members, so anyone who reaches the ballot can try another member&rsquo;s
-            number. Open voting only while members are present, watch ballots cast against heads in
-            the room, and close it promptly.
-          </>
-        ) : (
-          <>
-            Keep tokens hidden while this screen is projected. Distribute privately — a printed slip
-            handed out at check-in works best, because check-in already establishes eligibility.
-          </>
-        )}
+        Voting needs both the membership number and the token. The number is not a secret, so the
+        token is what actually protects the ballot — keep it hidden while this screen is projected,
+        and hand slips out privately at check-in, where eligibility is already being established.
       </div>
     </>
   );

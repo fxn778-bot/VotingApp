@@ -87,7 +87,11 @@ export function createSupabaseBackend(url, anonKey) {
       // honest instead of aborting the whole import on one repeated line.
       const current = Object.entries(await this.getRegister());
       const names = new Set(current.map(([, m]) => m.name.toLowerCase()));
-      const numbers = new Set(current.map(([tok]) => normTok(tok)));
+      // Compared against member numbers, not tokens: the two are separate
+      // values now, and a token collision is not what makes a row a duplicate.
+      const numbers = new Set(
+        current.filter(([, m]) => m.memberNo).map(([, m]) => normTok(m.memberNo))
+      );
 
       for (const line of lines) {
         const parsed = parseImportLine(line);
@@ -157,17 +161,26 @@ export function createSupabaseBackend(url, anonKey) {
     },
 
     // ---- voter path (anon) ----
-    async verifyToken(raw) {
-      // Sent as typed: the database normalises punctuation and case, so a
-      // membership number entered as "kcip 1" still resolves. It hands back
-      // the canonical token, which is what the ballot is then cast against.
-      const { data, error } = await sb.rpc("verify_token", { p_token: String(raw || "").trim() });
+    async verifyToken(memberNo, token) {
+      // Both are sent as typed; the database normalises punctuation and case,
+      // so "kcip 1" and "jqr482" resolve. It hands back the canonical pair,
+      // which is what the ballot is then cast against.
+      const { data, error } = await sb.rpc("verify_token", {
+        p_member_no: String(memberNo || "").trim(),
+        p_token: String(token || "").trim(),
+      });
       if (error) throw fail(error, "Could not reach the voting server");
       if (!data?.ok) return { ok: false, error: voterError(data?.error) };
-      return { ok: true, name: data.name, token: data.token ?? String(raw || "").trim() };
+      return {
+        ok: true,
+        name: data.name,
+        token: data.token ?? String(token || "").trim(),
+        memberNo: data.member_no ?? String(memberNo || "").trim(),
+      };
     },
-    async castBallot(token, selections) {
+    async castBallot(memberNo, token, selections) {
       const { data, error } = await sb.rpc("cast_ballot", {
+        p_member_no: memberNo,
         p_token: token,
         p_selections: selections,
       });

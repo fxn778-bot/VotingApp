@@ -61,13 +61,16 @@ create index members_token_idx on members (token);
 -- Token format, when generated: 6 chars from an unambiguous alphabet,
 -- hyphenated (ABC-123). Excludes 0/O/1/I/L so a printed slip cannot be misread.
 --
--- Alternatively the organisation's own membership number can be the token —
--- import_member() takes one and uses it for both columns. That trades secrecy
--- for convenience and IS A REAL TRADE: membership numbers are sequential and
--- already known, so anyone reaching the ballot can try another member's
--- number. The single-use rule still stops double voting, but it no longer
--- proves the person casting a member's ballot IS that member. Add a per-member
--- PIN if the vote is contested or the stakes are high.
+-- Voting takes TWO things, and neither alone is enough:
+--
+--   member_no  the organisation's own membership number. Not a secret —
+--              sequential, printed on records, known to the member. It proves
+--              the person is on the register.
+--   token      issued privately at check-in. Secret. It proves the person
+--              IS that member.
+--
+-- Guessing numbers is useless without the token; a token found on a dropped
+-- slip is useless without knowing whose it is.
 
 -- Members type their number off a card or from memory, so matching ignores
 -- case and punctuation: "kcip 1", "KCIP-0001" and "KCIP0001" are one token.
@@ -169,6 +172,7 @@ from members;
 --    SECURITY DEFINER so it can write to tables the caller cannot read.
 -- ---------------------------------------------------------------------------
 create or replace function cast_ballot(
+  p_member_no  text,
   p_token      text,
   p_selections jsonb   -- {"itm1":["Candidate A"], "itm2":["For"]}
 )
@@ -195,6 +199,7 @@ begin
   select * into v_member
   from members
   where norm_token(token) = norm_token(p_token)
+    and (member_no is null or norm_token(member_no) = norm_token(p_member_no))
   for update;
 
   if not found then
@@ -236,7 +241,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 7. verify_token() — check eligibility without casting
 -- ---------------------------------------------------------------------------
-create or replace function verify_token(p_token text)
+create or replace function verify_token(p_member_no text, p_token text)
 returns jsonb
 language plpgsql
 security definer
@@ -244,7 +249,13 @@ set search_path = public
 as $$
 declare v_member members%rowtype;
 begin
-  select * into v_member from members where norm_token(token) = norm_token(p_token);
+  -- Both halves must land on the same member. The same error is returned for
+  -- a wrong number, a wrong token and a mismatched pair — distinguishing them
+  -- would confirm which half was right and make the pair guessable piecewise.
+  select * into v_member
+  from members
+  where norm_token(token) = norm_token(p_token)
+    and (member_no is null or norm_token(member_no) = norm_token(p_member_no));
 
   if not found then
     return jsonb_build_object('ok', false, 'error', 'token_not_found');
@@ -259,7 +270,8 @@ begin
   -- Return the name so the voter can confirm the credential is theirs before
   -- voting — worth more when numbers are typed from memory and a transposed
   -- digit lands on a real person.
-  return jsonb_build_object('ok', true, 'name', v_member.full_name, 'token', v_member.token);
+  return jsonb_build_object('ok', true, 'name', v_member.full_name,
+                            'token', v_member.token, 'member_no', v_member.member_no);
 end;
 $$;
 
@@ -310,8 +322,8 @@ grant select                         on audit_events   to authenticated;
 -- Ballots are written only by cast_ballot() running as definer, which makes
 -- them immutable at the privilege level as well as the policy level.
 
-grant execute on function cast_ballot(text, jsonb)  to anon;
-grant execute on function verify_token(text)        to anon;
+grant execute on function cast_ballot(text, text, jsonb) to anon, authenticated;
+grant execute on function verify_token(text, text)      to anon, authenticated;
 
 -- Tallies and turnout are for signed-in admins only (see section 5).
 grant select on tally         to authenticated;
@@ -374,26 +386,24 @@ create or replace function import_member(
 returns text
 language plpgsql security definer set search_path = public
 as $$
-declare v_token text; v_tries int := 0;
+declare v_token text; v_no text; v_tries int := 0;
 begin
-  -- Explicit membership number: use it as the token, and refuse a duplicate
-  -- outright. Two rows for one number would be two ballots for one membership.
-  if p_member_no is not null and btrim(p_member_no) <> '' then
-    v_token := btrim(p_member_no);
-    if exists (select 1 from members where norm_token(token) = norm_token(v_token)) then
-      raise exception 'membership number % is already on the register', v_token
-        using errcode = 'unique_violation';
-    end if;
-    insert into members (full_name, email, token, member_no)
-    values (p_name, p_email, v_token, v_token);
-    return v_token;
+  v_no := nullif(btrim(coalesce(p_member_no, '')), '');
+
+  -- One row per membership number. Two would be two ballots for one
+  -- membership, which nothing downstream can undo.
+  if v_no is not null and exists (
+    select 1 from members where norm_token(member_no) = norm_token(v_no)
+  ) then
+    raise exception 'membership number % is already on the register', v_no
+      using errcode = 'unique_violation';
   end if;
 
   loop
     v_token := generate_token();
     begin
-      insert into members (full_name, email, token)
-      values (p_name, p_email, v_token);
+      insert into members (full_name, email, token, member_no)
+      values (p_name, p_email, v_token, v_no);
       return v_token;
     exception when unique_violation then
       v_tries := v_tries + 1;

@@ -33,6 +33,7 @@ export function useVotingApp() {
     newCandidates: {},
 
     vstep: "entry",
+    vmemberno: "",
     vtoken: "",
     vname: "",
     vidx: 0,
@@ -154,7 +155,8 @@ export function useVotingApp() {
   const actions = {
     // ---- navigation ----
     goAdmin: () => set({ screen: "admin" }),
-    goVoter: () => set({ screen: "voter", vstep: "entry", vtoken: "", verr: "" }),
+    goVoter: () =>
+      set({ screen: "voter", vstep: "entry", vmemberno: "", vtoken: "", verr: "" }),
     goLand: () => set({ screen: "land" }),
     setTab: (tab) => set({ tab }),
     dismissError: () => set({ error: "" }),
@@ -271,18 +273,18 @@ export function useVotingApp() {
             ? a.memberNo.localeCompare(b.memberNo, undefined, { numeric: true })
             : a.name.localeCompare(b.name)
         )
-        .map(([t, m]) => `${m.memberNo || t}\t${m.name}${m.email ? " <" + m.email + ">" : ""}`);
-      // Only a generated token is confidential; a membership number is already
-      // on the member's card, so labelling the sheet CONFIDENTIAL would be
-      // theatre rather than a real handling instruction.
-      const heading = byNumber
-        ? "MEMBER CHECK-IN LIST — number is the voting credential"
-        : "VOTING TOKENS (CONFIDENTIAL)";
+        .map(
+          ([t, m]) =>
+            `${(m.memberNo || "—").padEnd(12)}${m.name}${m.email ? " <" + m.email + ">" : ""}\t${t}`
+        );
+      // The token is a secret even though the number beside it is not, so the
+      // sheet as a whole has to be handled as confidential.
       copyText(
-        `${state.cfg.org} — ${state.cfg.mtg}\n${heading}\n\n${lines.join("\n")}\n`,
-        byNumber
-          ? "Check-in list copied. Paste into a document to print."
-          : "Token slips copied. Paste into a document to print or mail-merge."
+        `${state.cfg.org} — ${state.cfg.mtg}\n` +
+          `VOTING SLIPS (CONFIDENTIAL)\n` +
+          `Members need BOTH their membership number and the token below.\n\n` +
+          `${"NUMBER".padEnd(12)}NAME\tTOKEN\n${lines.join("\n")}\n`,
+        "Voting slips copied. Paste into a document to print or mail-merge."
       );
     },
 
@@ -334,16 +336,17 @@ export function useVotingApp() {
     },
 
     // ---- voter ----
+    setVmemberno: (v) => set({ vmemberno: v }),
     setVtoken: (v) => set({ vtoken: v }),
     doVerify: async () => {
-      if (!state.vtoken.trim()) {
-        set({ verr: "Please enter your membership number." });
+      if (!state.vmemberno.trim() || !state.vtoken.trim()) {
+        set({ verr: "Enter both your membership number and the voting token from your slip." });
         return;
       }
       set({ busy: true });
       let r;
       try {
-        r = await backend.verifyToken(state.vtoken);
+        r = await backend.verifyToken(state.vmemberno, state.vtoken);
       } catch (e) {
         set({ busy: false, verr: e?.message || "Could not reach the voting server." });
         return;
@@ -357,7 +360,7 @@ export function useVotingApp() {
       // the meeting's current state, not the state when the page opened.
       const m = await loadMeeting();
       const phase = m?.phase ?? state.phase;
-      const base = { vtoken: r.token, vname: r.name, verr: "" };
+      const base = { vtoken: r.token, vmemberno: r.memberNo ?? state.vmemberno, vname: r.name, verr: "" };
       if (phase === "setup") set({ ...base, vstep: "wait" });
       else if (phase === "closed") set({ ...base, vstep: "closed" });
       else set({ ...base, vidx: 0, vsel: {}, vstep: "ballot" });
@@ -381,7 +384,7 @@ export function useVotingApp() {
       set({ busy: true, verr: "" });
       let r;
       try {
-        r = await backend.castBallot(state.vtoken, state.vsel);
+        r = await backend.castBallot(state.vmemberno, state.vtoken, state.vsel);
       } catch (e) {
         // Deliberately do NOT mark the ballot done — the voter must be able to
         // retry. cast_ballot is guarded by has_voted, so a retry after a

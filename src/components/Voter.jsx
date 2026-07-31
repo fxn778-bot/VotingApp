@@ -16,6 +16,21 @@ const errBanner = {
   color: color.red,
 };
 
+// Both credentials are short codes read off a slip, so they get the same
+// monospaced, generously tracked treatment — easy to check character by
+// character on a phone in a crowded room.
+const credentialInput = {
+  fontFamily: mono,
+  fontSize: 18,
+  letterSpacing: ".10em",
+  textAlign: "center",
+  padding: "12px 14px",
+  border: "1px solid rgba(33,31,26,.16)",
+  borderRadius: 11,
+  width: "100%",
+  outline: "none",
+};
+
 export default function Voter({ state, actions }) {
   const { cfg, vstep, vtoken, vname, verr, vidx, vsel } = state;
 
@@ -66,32 +81,45 @@ export default function Voter({ state, actions }) {
               Member verification
             </div>
             <div style={{ fontSize: 12.5, color: color.ink2, marginBottom: 16, lineHeight: 1.6 }}>
-              Enter your membership number. It may be used to vote once.
+              Enter your membership number and the voting token from the slip you were given at
+              check-in. Both are needed, and they may be used to vote once.
             </div>
             {verr && <div style={{ ...errBanner, marginBottom: 12 }}>{verr}</div>}
-            <label style={{ ...fieldLabel, marginBottom: 6 }}>Membership number</label>
+
+            <label style={{ ...fieldLabel, marginBottom: 6 }} htmlFor="v-member-no">
+              Membership number
+            </label>
             <input
+              id="v-member-no"
+              type="text"
+              className="focus-navy"
+              value={state.vmemberno}
+              placeholder="KCIP-0001"
+              autoComplete="off"
+              autoCapitalize="characters"
+              onChange={(e) => actions.setVmemberno(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") actions.doVerify();
+              }}
+              style={{ ...credentialInput, marginBottom: 14 }}
+            />
+
+            <label style={{ ...fieldLabel, marginBottom: 6 }} htmlFor="v-token">
+              Voting token
+            </label>
+            <input
+              id="v-token"
               type="text"
               className="focus-navy"
               value={vtoken}
-              placeholder="KCIP-0001"
+              placeholder="ABC-123"
               autoComplete="off"
+              autoCapitalize="characters"
               onChange={(e) => actions.setVtoken(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") actions.doVerify();
               }}
-              style={{
-                fontFamily: mono,
-                fontSize: 19,
-                letterSpacing: ".10em",
-                textAlign: "center",
-                padding: 14,
-                border: "1px solid rgba(33,31,26,.16)",
-                borderRadius: 11,
-                width: "100%",
-                outline: "none",
-                marginBottom: 16,
-              }}
+              style={{ ...credentialInput, marginBottom: 16 }}
             />
             <button
               onClick={actions.doVerify}

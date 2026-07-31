@@ -163,11 +163,15 @@ export default function Landing({ cfg, isLive, onAdmin, onVoter }) {
             }}
           >
             <strong style={{ color: color.ink }}>Demo mode</strong> — all data lives in this browser
-            only, and nothing syncs between devices. Try the sample token{" "}
+            only, and nothing syncs between devices. On the voter side try member{" "}
+            <strong style={{ color: color.ink, fontFamily: mono, letterSpacing: ".05em" }}>
+              MG-004
+            </strong>{" "}
+            with token{" "}
             <strong style={{ color: color.ink, fontFamily: mono, letterSpacing: ".05em" }}>
               WBN-206
             </strong>{" "}
-            (Sam Okafor, not yet voted) on the voter side.
+            (Sam Okafor, not yet voted). Both are needed.
           </div>
         )}
       </div>

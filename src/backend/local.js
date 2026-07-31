@@ -30,12 +30,20 @@ function state() {
   return load() || save({});
 }
 
-// Resolve typed input to the register key it belongs to, comparing normalised
-// forms so hyphens, spaces and case do not decide whether someone can vote.
-function findKey(reg, raw) {
-  const n = normTok(raw);
-  if (!n) return null;
-  return Object.keys(reg).find((k) => normTok(k) === n) || null;
+// Resolve a membership number + token pair to the register key it belongs to.
+// Both must match the same member; a member with no number on file (name-only
+// import) is matched on the token alone.
+function findKey(reg, memberNo, token) {
+  const t = normTok(token);
+  if (!t) return null;
+  const n = normTok(memberNo);
+  return (
+    Object.keys(reg).find((k) => {
+      if (normTok(k) !== t) return false;
+      const mn = reg[k].memberNo;
+      return !mn || normTok(mn) === n;
+    }) || null
+  );
 }
 
 export function createLocalBackend() {
@@ -71,6 +79,9 @@ export function createLocalBackend() {
       const reg = { ...s.reg };
       const names = new Set(Object.values(reg).map((m) => m.name.toLowerCase()));
       const norms = new Set(Object.keys(reg).map(normTok));
+      const numbers = new Set(
+        Object.values(reg).filter((m) => m.memberNo).map((m) => normTok(m.memberNo))
+      );
       let added = 0;
       let dupes = 0;
       for (const line of lines) {
@@ -81,7 +92,7 @@ export function createLocalBackend() {
         // A repeated membership number is the duplicate that matters — two
         // rows for one number would mean two ballots for one membership.
         if (memberNo) {
-          if (norms.has(normTok(memberNo))) {
+          if (numbers.has(normTok(memberNo))) {
             dupes++;
             continue;
           }
@@ -90,16 +101,16 @@ export function createLocalBackend() {
           continue;
         }
 
-        let t = memberNo;
-        if (!t) {
-          let guard = 0;
-          do {
-            t = newToken();
-            guard++;
-          } while (norms.has(normTok(t)) && guard < 60);
-        }
-        norms.add(normTok(t));
+        // The membership number identifies; the token authenticates. Always
+        // mint a fresh token — the number is not a secret.
+        let t;
+        let guard = 0;
+        do {
+          t = newToken();
+          guard++;
+        } while (norms.has(normTok(t)) && guard < 60);
         names.add(name.toLowerCase());
+        if (memberNo) numbers.add(normTok(memberNo));
         reg[t] = { name, email, memberNo, eligible: true, voted: false };
         added++;
       }
@@ -140,21 +151,21 @@ export function createLocalBackend() {
       return { ok: true };
     },
 
-    async verifyToken(raw) {
+    async verifyToken(memberNo, token) {
       const s = state();
-      // The register is keyed by the token as issued ("KCIP-0001", "WBN-206"),
-      // so resolve what the member typed against the normalised form.
-      const key = findKey(s.reg, raw);
+      const key = findKey(s.reg, memberNo, token);
       const m = key && s.reg[key];
+      // One error for every kind of miss: saying which half was wrong would
+      // let the pair be guessed one piece at a time.
       if (!m) return { ok: false, error: voterError("token_not_found") };
       if (!m.eligible) return { ok: false, error: voterError("not_eligible") };
       if (m.voted) return { ok: false, error: voterError("token_already_used") };
-      return { ok: true, name: m.name, token: key };
+      return { ok: true, name: m.name, token: key, memberNo: m.memberNo };
     },
-    async castBallot(rawToken, selections) {
+    async castBallot(memberNo, rawToken, selections) {
       const s = state();
       if (s.phase !== "voting") return { ok: false, error: voterError("voting_not_open") };
-      const token = findKey(s.reg, rawToken);
+      const token = findKey(s.reg, memberNo, rawToken);
       const m = token && s.reg[token];
       if (!m) return { ok: false, error: voterError("token_not_found") };
       if (m.voted) return { ok: false, error: voterError("token_already_used") };

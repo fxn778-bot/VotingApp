@@ -21,8 +21,9 @@ meeting — not in the room. Do a full rehearsal (§5) before it matters.
 > Still yours to do: **§3** (create the admin account — it needs the dashboard),
 > **§4** (put the URL and key in `.env.local`, then build), and **§5** (rehearse).
 >
-> **New:** run `migrations/002_member_numbers.sql` before importing the register
-> — it adds membership-number authentication. See §12.
+> **New:** run `migrations/002_member_numbers.sql` then
+> `migrations/003_two_factor.sql` before importing the register — together they
+> add membership numbers and two-factor voting. See §12.
 
 ---
 
@@ -299,61 +300,73 @@ warnings above and nothing else; anything new deserves a look.
 
 ---
 
-## 12. Authenticating by membership number
+## 12. How members are authenticated
 
-The register can be imported straight from your membership list as
-`Number, Name`:
+Voting takes **two** things, and neither alone is enough:
+
+| | What it is | Secret? | Proves |
+|---|---|---|---|
+| **Membership number** | `KCIP-0001`, from your own list | No — members already know it | The person is on the register |
+| **Voting token** | `ABC-123`, generated per member | Yes — issued at check-in | The person *is* that member |
+
+Guessing numbers gets an attacker nowhere without the token. A token found on a
+dropped slip gets them nowhere without knowing whose it is.
+
+### Importing the register
+
+Paste your membership list straight in as `Number, Name`:
 
 ```
 KCIP-0001, Stanley Muithuri Maina
 KCIP-0002, Stella Mwangi
 ```
 
-The membership number then *is* the voting credential — there is nothing extra
-to print or hand out. Members type the number they already know.
-
-**To enable it on a project created before this change**, run
-[`migrations/002_member_numbers.sql`](./migrations/002_member_numbers.sql) once
-in the SQL editor. A fresh install from `schema.sql` already includes it.
-Existing members keep their generated tokens; only new imports get numbers.
+Each member keeps their number and is issued a fresh random token. Lines
+without a number (`Jane Wanjiru`, or `Peter Otieno, peter@example.com`) still
+work and get a token as before; the two formats can be mixed in one paste.
 
 Matching ignores case and punctuation, so `KCIP-0001`, `kcip0001` and
-`kcip 0001` are the same credential. A number already on the register is
-refused rather than duplicated, so re-pasting the list is safe.
+`kcip 0001` are the same number — a hyphen should never decide whether someone
+can vote. A number already on the register is refused rather than duplicated,
+so re-pasting the list is safe.
 
-Lines without a number still work — `Jane Wanjiru` or `Peter Otieno,
-peter@example.com` get a generated token as before. The two formats can be
-mixed in one paste; the importer tells them apart by shape.
+**To enable this on a project created earlier**, run
+[`migrations/002_member_numbers.sql`](./migrations/002_member_numbers.sql) then
+[`migrations/003_two_factor.sql`](./migrations/003_two_factor.sql) in the SQL
+editor. A fresh install from `schema.sql` already includes both. Migration 003
+re-issues a real token to anyone whose token was previously their membership
+number, and drops the older single-credential functions so the weaker path
+cannot be called.
 
-### What this costs you
+### Handing out slips
 
-**Membership numbers are not secret.** They are sequential, printed on member
-records, and known to the people who hold them. Anyone who can reach the ballot
-can type another member's number and vote as them, provided that member has not
-voted yet. The register then shows that member as *Voted* and they cannot vote
-when they arrive.
+**Register → Export slips** gives you number, name and token per line, in
+membership-number order — the order you will work down at check-in.
 
-The single-use rule still holds — nobody votes twice, and the count still
-reconciles. What you lose is the guarantee that the person who cast a member's
-ballot **was** that member. With a randomly generated token handed out at
-check-in, that guarantee holds because the credential is both secret and issued
-against identity. With membership numbers it does not.
+The sheet is confidential. The number on it is not a secret, but the token
+beside it is, and the two together are a ballot.
 
-Whether that matters depends on the meeting. For an uncontested AGM among
-members who know each other, the convenience usually wins. For a contested
-election, a close motion, or anything likely to be challenged afterwards, it is
-a real weakness and a losing side may say so.
+Hand each slip out at check-in against identity. That is what ties the
+credential to a real person; the app only checks that the pair matches.
 
-**Mitigate operationally:**
+### What this does and does not prove
 
-- Open voting only while members are in the room, and close it promptly. The
-  exposure window is exactly the time voting is open.
-- Watch *Ballots cast* against heads present. A count that runs ahead of the
-  room is the signal something is wrong.
-- Do not publish the join link beyond the meeting.
-- Suspend members who are not present (**Register → Suspend**) so their numbers
-  cannot be used at all.
+**Does:** nobody votes twice — the pair is burned inside the same transaction
+that records the ballot, and the row is locked, so two simultaneous
+submissions cannot both succeed. Nobody who is not on the register can vote.
+Guessing is impractical: the token is 6 characters from a 31-character
+alphabet, and the attacker must also pair it with the right number.
 
-**Or close it properly:** add a short per-member PIN and require number + PIN.
-Members still recognise their own number; the PIN is what authenticates. That
-restores the guarantee while keeping the convenience of a number people know.
+**Does not:** stop a member handing their slip to someone else, or someone
+voting with a slip they found. The system authenticates the credential, not the
+face. That is why slips go out at check-in, one at a time, and should not be
+left on a table.
+
+**A wrong number, a wrong token and a mismatched pair all return the same
+message.** That is deliberate — saying which half was wrong would let the pair
+be guessed one piece at a time.
+
+### If a member loses their slip
+
+Look them up on **Register**, use **Show tokens**, and read the token back to
+them privately. Nothing is burned until they actually vote.
