@@ -48,7 +48,8 @@ create table members (
   full_name   text        not null,
   email       text,
   phone       text,
-  token       text        not null unique,
+  token       text        not null unique,   -- the voting credential
+  member_no   text        unique,             -- the organisation's own number
   eligible    boolean     not null default true,
   has_voted   boolean     not null default false,
   voted_on    date,                       -- was voted_at timestamptz; see §3
@@ -57,8 +58,25 @@ create table members (
 
 create index members_token_idx on members (token);
 
--- Token format: 6 chars from an unambiguous alphabet, hyphenated (ABC-123).
--- Excludes 0/O/1/I/L so a printed slip cannot be misread.
+-- Token format, when generated: 6 chars from an unambiguous alphabet,
+-- hyphenated (ABC-123). Excludes 0/O/1/I/L so a printed slip cannot be misread.
+--
+-- Alternatively the organisation's own membership number can be the token —
+-- import_member() takes one and uses it for both columns. That trades secrecy
+-- for convenience and IS A REAL TRADE: membership numbers are sequential and
+-- already known, so anyone reaching the ballot can try another member's
+-- number. The single-use rule still stops double voting, but it no longer
+-- proves the person casting a member's ballot IS that member. Add a per-member
+-- PIN if the vote is contested or the stakes are high.
+
+-- Members type their number off a card or from memory, so matching ignores
+-- case and punctuation: "kcip 1", "KCIP-0001" and "KCIP0001" are one token.
+create or replace function norm_token(t text)
+returns text language sql immutable set search_path = public as $$
+  select upper(regexp_replace(coalesce(t, ''), '[^A-Za-z0-9]', '', 'g'));
+$$;
+
+create index members_norm_token_idx on members (norm_token(token));
 
 
 -- ---------------------------------------------------------------------------
@@ -176,7 +194,7 @@ begin
   -- cannot both pass the has_voted check.
   select * into v_member
   from members
-  where token = upper(trim(p_token))
+  where norm_token(token) = norm_token(p_token)
   for update;
 
   if not found then
@@ -226,7 +244,7 @@ set search_path = public
 as $$
 declare v_member members%rowtype;
 begin
-  select * into v_member from members where token = upper(trim(p_token));
+  select * into v_member from members where norm_token(token) = norm_token(p_token);
 
   if not found then
     return jsonb_build_object('ok', false, 'error', 'token_not_found');
@@ -238,8 +256,10 @@ begin
     return jsonb_build_object('ok', false, 'error', 'token_already_used');
   end if;
 
-  -- Return the name only, so the voter can confirm the slip is theirs.
-  return jsonb_build_object('ok', true, 'name', v_member.full_name);
+  -- Return the name so the voter can confirm the credential is theirs before
+  -- voting — worth more when numbers are typed from memory and a transposed
+  -- digit lands on a real person.
+  return jsonb_build_object('ok', true, 'name', v_member.full_name, 'token', v_member.token);
 end;
 $$;
 
@@ -346,12 +366,29 @@ end;
 $$;
 
 -- Bulk import. Retries on the (rare) unique collision.
-create or replace function import_member(p_name text, p_email text default null)
+create or replace function import_member(
+  p_name      text,
+  p_email     text default null,
+  p_member_no text default null
+)
 returns text
 language plpgsql security definer set search_path = public
 as $$
 declare v_token text; v_tries int := 0;
 begin
+  -- Explicit membership number: use it as the token, and refuse a duplicate
+  -- outright. Two rows for one number would be two ballots for one membership.
+  if p_member_no is not null and btrim(p_member_no) <> '' then
+    v_token := btrim(p_member_no);
+    if exists (select 1 from members where norm_token(token) = norm_token(v_token)) then
+      raise exception 'membership number % is already on the register', v_token
+        using errcode = 'unique_violation';
+    end if;
+    insert into members (full_name, email, token, member_no)
+    values (p_name, p_email, v_token, v_token);
+    return v_token;
+  end if;
+
   loop
     v_token := generate_token();
     begin
@@ -366,8 +403,8 @@ begin
 end;
 $$;
 
-revoke execute on function import_member(text, text) from anon, public;
-grant  execute on function import_member(text, text) to authenticated;
+revoke execute on function import_member(text, text, text) from anon, public;
+grant  execute on function import_member(text, text, text) to authenticated;
 
 
 -- ---------------------------------------------------------------------------

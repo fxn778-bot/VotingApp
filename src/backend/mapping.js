@@ -59,6 +59,9 @@ export function memberFromDb(row) {
     id: row.id,
     name: row.full_name,
     email: row.email ?? "",
+    // Null for members whose token was randomly generated rather than taken
+    // from a membership number; the register falls back to the token then.
+    memberNo: row.member_no ?? null,
     eligible: row.eligible,
     voted: row.has_voted,
   };

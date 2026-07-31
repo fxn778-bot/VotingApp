@@ -11,7 +11,7 @@
 // enforcing the rule, not the UI being polite.
 import { createClient } from "@supabase/supabase-js";
 import { configFromDb, configToDb, registerFromDb, tallyFromDb, voterError } from "./mapping";
-import { normTok } from "../utils";
+import { normTok, parseImportLine } from "../utils";
 
 export function createSupabaseBackend(url, anonKey) {
   const sb = createClient(url, anonKey, {
@@ -73,7 +73,7 @@ export function createSupabaseBackend(url, anonKey) {
     async getRegister() {
       const { data, error } = await sb
         .from("members")
-        .select("id,full_name,email,token,eligible,has_voted")
+        .select("id,full_name,email,token,member_no,eligible,has_voted")
         .order("full_name");
       if (error) throw fail(error, "Could not load the register");
       return registerFromDb(data);
@@ -81,25 +81,32 @@ export function createSupabaseBackend(url, anonKey) {
     async importMembers(lines) {
       let added = 0;
       let dupes = 0;
-      // Existing names are checked client-side so a re-run of the same paste
-      // does not mint a second token for someone already on the register.
-      const existing = new Set(
-        Object.values(await this.getRegister()).map((m) => m.name.toLowerCase())
-      );
+      // Checked client-side so re-running the same paste does not mint a
+      // second row. The database enforces this too — import_member() rejects a
+      // duplicate membership number — but catching it here keeps the count
+      // honest instead of aborting the whole import on one repeated line.
+      const current = Object.entries(await this.getRegister());
+      const names = new Set(current.map(([, m]) => m.name.toLowerCase()));
+      const numbers = new Set(current.map(([tok]) => normTok(tok)));
+
       for (const line of lines) {
-        const parts = line.split(",").map((x) => x.trim());
-        const name = parts[0];
-        if (!name) continue;
-        if (existing.has(name.toLowerCase())) {
+        const parsed = parseImportLine(line);
+        if (!parsed) continue;
+        const { memberNo, name, email } = parsed;
+
+        if (memberNo ? numbers.has(normTok(memberNo)) : names.has(name.toLowerCase())) {
           dupes++;
           continue;
         }
+
         const { error } = await sb.rpc("import_member", {
           p_name: name,
-          p_email: parts[1] || null,
+          p_email: email || null,
+          p_member_no: memberNo,
         });
-        if (error) throw fail(error, `Could not add ${name}`);
-        existing.add(name.toLowerCase());
+        if (error) throw fail(error, `Could not add ${memberNo || name}`);
+        names.add(name.toLowerCase());
+        if (memberNo) numbers.add(normTok(memberNo));
         added++;
       }
       return { added, dupes };
@@ -151,11 +158,13 @@ export function createSupabaseBackend(url, anonKey) {
 
     // ---- voter path (anon) ----
     async verifyToken(raw) {
-      const token = normTok(raw);
-      const { data, error } = await sb.rpc("verify_token", { p_token: token });
+      // Sent as typed: the database normalises punctuation and case, so a
+      // membership number entered as "kcip 1" still resolves. It hands back
+      // the canonical token, which is what the ballot is then cast against.
+      const { data, error } = await sb.rpc("verify_token", { p_token: String(raw || "").trim() });
       if (error) throw fail(error, "Could not reach the voting server");
       if (!data?.ok) return { ok: false, error: voterError(data?.error) };
-      return { ok: true, name: data.name, token };
+      return { ok: true, name: data.name, token: data.token ?? String(raw || "").trim() };
     },
     async castBallot(token, selections) {
       const { data, error } = await sb.rpc("cast_ballot", {

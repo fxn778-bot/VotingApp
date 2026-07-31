@@ -20,6 +20,9 @@ meeting — not in the room. Do a full rehearsal (§5) before it matters.
 >
 > Still yours to do: **§3** (create the admin account — it needs the dashboard),
 > **§4** (put the URL and key in `.env.local`, then build), and **§5** (rehearse).
+>
+> **New:** run `migrations/002_member_numbers.sql` before importing the register
+> — it adds membership-number authentication. See §12.
 
 ---
 
@@ -292,3 +295,65 @@ Two findings were real and are already fixed:
 
 Run **Advisors → Security** yourself after any schema change. Expect the
 warnings above and nothing else; anything new deserves a look.
+
+
+---
+
+## 12. Authenticating by membership number
+
+The register can be imported straight from your membership list as
+`Number, Name`:
+
+```
+KCIP-0001, Stanley Muithuri Maina
+KCIP-0002, Stella Mwangi
+```
+
+The membership number then *is* the voting credential — there is nothing extra
+to print or hand out. Members type the number they already know.
+
+**To enable it on a project created before this change**, run
+[`migrations/002_member_numbers.sql`](./migrations/002_member_numbers.sql) once
+in the SQL editor. A fresh install from `schema.sql` already includes it.
+Existing members keep their generated tokens; only new imports get numbers.
+
+Matching ignores case and punctuation, so `KCIP-0001`, `kcip0001` and
+`kcip 0001` are the same credential. A number already on the register is
+refused rather than duplicated, so re-pasting the list is safe.
+
+Lines without a number still work — `Jane Wanjiru` or `Peter Otieno,
+peter@example.com` get a generated token as before. The two formats can be
+mixed in one paste; the importer tells them apart by shape.
+
+### What this costs you
+
+**Membership numbers are not secret.** They are sequential, printed on member
+records, and known to the people who hold them. Anyone who can reach the ballot
+can type another member's number and vote as them, provided that member has not
+voted yet. The register then shows that member as *Voted* and they cannot vote
+when they arrive.
+
+The single-use rule still holds — nobody votes twice, and the count still
+reconciles. What you lose is the guarantee that the person who cast a member's
+ballot **was** that member. With a randomly generated token handed out at
+check-in, that guarantee holds because the credential is both secret and issued
+against identity. With membership numbers it does not.
+
+Whether that matters depends on the meeting. For an uncontested AGM among
+members who know each other, the convenience usually wins. For a contested
+election, a close motion, or anything likely to be challenged afterwards, it is
+a real weakness and a losing side may say so.
+
+**Mitigate operationally:**
+
+- Open voting only while members are in the room, and close it promptly. The
+  exposure window is exactly the time voting is open.
+- Watch *Ballots cast* against heads present. A count that runs ahead of the
+  room is the signal something is wrong.
+- Do not publish the join link beyond the meeting.
+- Suspend members who are not present (**Register → Suspend**) so their numbers
+  cannot be used at all.
+
+**Or close it properly:** add a short per-member PIN and require number + PIN.
+Members still recognise their own number; the PIN is what authenticates. That
+restores the guarantee while keeping the convenience of a number people know.

@@ -263,12 +263,26 @@ export function useVotingApp() {
     },
     toggleShowTok: () => set((s) => ({ showTok: !s.showTok })),
     exportTokens: () => {
-      const lines = Object.entries(state.reg)
-        .sort((a, b) => a[1].name.localeCompare(b[1].name))
-        .map(([t, m]) => `${m.name}${m.email ? " <" + m.email + ">" : ""}\t${t}`);
+      const entries = Object.entries(state.reg);
+      const byNumber = entries.some(([, m]) => m.memberNo);
+      const lines = entries
+        .sort(([, a], [, b]) =>
+          byNumber && a.memberNo && b.memberNo
+            ? a.memberNo.localeCompare(b.memberNo, undefined, { numeric: true })
+            : a.name.localeCompare(b.name)
+        )
+        .map(([t, m]) => `${m.memberNo || t}\t${m.name}${m.email ? " <" + m.email + ">" : ""}`);
+      // Only a generated token is confidential; a membership number is already
+      // on the member's card, so labelling the sheet CONFIDENTIAL would be
+      // theatre rather than a real handling instruction.
+      const heading = byNumber
+        ? "MEMBER CHECK-IN LIST — number is the voting credential"
+        : "VOTING TOKENS (CONFIDENTIAL)";
       copyText(
-        `${state.cfg.org} — ${state.cfg.mtg}\nVOTING TOKENS (CONFIDENTIAL)\n\n${lines.join("\n")}\n`,
-        "Token slips copied. Paste into a document to print or mail-merge."
+        `${state.cfg.org} — ${state.cfg.mtg}\n${heading}\n\n${lines.join("\n")}\n`,
+        byNumber
+          ? "Check-in list copied. Paste into a document to print."
+          : "Token slips copied. Paste into a document to print or mail-merge."
       );
     },
 
@@ -323,7 +337,7 @@ export function useVotingApp() {
     setVtoken: (v) => set({ vtoken: v }),
     doVerify: async () => {
       if (!state.vtoken.trim()) {
-        set({ verr: "Please enter your voting token." });
+        set({ verr: "Please enter your membership number." });
         return;
       }
       set({ busy: true });

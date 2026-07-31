@@ -66,15 +66,15 @@ export default function Voter({ state, actions }) {
               Member verification
             </div>
             <div style={{ fontSize: 12.5, color: color.ink2, marginBottom: 16, lineHeight: 1.6 }}>
-              Enter the voting token issued to you at check-in. Each token may be used once.
+              Enter your membership number. It may be used to vote once.
             </div>
             {verr && <div style={{ ...errBanner, marginBottom: 12 }}>{verr}</div>}
-            <label style={{ ...fieldLabel, marginBottom: 6 }}>Voting token</label>
+            <label style={{ ...fieldLabel, marginBottom: 6 }}>Membership number</label>
             <input
               type="text"
               className="focus-navy"
               value={vtoken}
-              placeholder="ABC-123"
+              placeholder="KCIP-0001"
               autoComplete="off"
               onChange={(e) => actions.setVtoken(e.target.value)}
               onKeyDown={(e) => {
@@ -82,8 +82,8 @@ export default function Voter({ state, actions }) {
               }}
               style={{
                 fontFamily: mono,
-                fontSize: 20,
-                letterSpacing: ".16em",
+                fontSize: 19,
+                letterSpacing: ".10em",
                 textAlign: "center",
                 padding: 14,
                 border: "1px solid rgba(33,31,26,.16)",
@@ -151,7 +151,7 @@ export default function Voter({ state, actions }) {
             <div style={{ fontSize: 12.5, color: color.ink2, lineHeight: 1.7 }}>
               Thank you, {vname}.
               <br />
-              Your token is now used and cannot vote again.
+              Your membership number is now used and cannot vote again.
               <br />
               <br />
               Your choices are not linked to your name.

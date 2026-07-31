@@ -6,9 +6,48 @@ export function newToken() {
   return t.slice(0, 3) + "-" + t.slice(3);
 }
 
+// Tokens are compared with punctuation and case stripped, so a member typing
+// "kcip 1", "KCIP-0001" or "KCIP0001" all reach the same row. Mirrors
+// norm_token() in the database — keep the two in step.
 export function normTok(raw) {
-  const s = String(raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-  return s.length === 6 ? s.slice(0, 3) + "-" + s.slice(3) : s;
+  return String(raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+// A membership number looks like KCIP-0001: a letter-led prefix, then digits,
+// with no spaces. Used to tell "KCIP-0001, Jane Doe" apart from "Jane Doe,
+// jane@example.com" on an import line, since both are two comma-separated
+// fields and guessing wrong would put a name in the number column.
+const MEMBER_NO_RE = /^[A-Za-z][A-Za-z0-9]*[-/ ]?\d+[A-Za-z0-9-]*$/;
+
+export function looksLikeMemberNo(field) {
+  const f = String(field || "").trim();
+  if (!f || f.includes("@")) return false;
+  // A name has spaces between words; a membership number does not (beyond an
+  // optional single separator before the digits).
+  if (/\s{1,}\S+\s+/.test(f)) return false;
+  return MEMBER_NO_RE.test(f) && /\d/.test(f);
+}
+
+// Parse one import line into { memberNo, name, email }.
+// Accepts, and auto-detects between:
+//   KCIP-0001, Stanley Muithuri Maina
+//   KCIP-0001, Stanley Muithuri Maina, stanley@example.com
+//   Jane Wanjiru
+//   Peter Otieno, peter@example.com
+export function parseImportLine(line) {
+  const parts = String(line || "").split(",").map((x) => x.trim());
+  if (!parts.length || !parts[0]) return null;
+
+  if (parts.length >= 2 && looksLikeMemberNo(parts[0])) {
+    const name = parts[1];
+    if (!name) return null;
+    return { memberNo: parts[0], name, email: parts[2] || "" };
+  }
+
+  const name = parts[0];
+  if (!name) return null;
+  const second = parts[1] || "";
+  return { memberNo: null, name, email: second.includes("@") ? second : "" };
 }
 
 export function uid() {

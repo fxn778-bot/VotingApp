@@ -18,7 +18,18 @@ const td = {
 };
 
 export default function RegisterTab({ state, stats, actions }) {
-  const rows = Object.entries(state.reg).sort((a, b) => a[1].name.localeCompare(b[1].name));
+  // Membership numbers are the natural order for check-in: officers work down
+  // a numbered list, not an alphabetical one.
+  const rows = Object.entries(state.reg).sort(([, a], [, b]) => {
+    if (a.memberNo && b.memberNo) {
+      return a.memberNo.localeCompare(b.memberNo, undefined, { numeric: true });
+    }
+    if (a.memberNo) return -1;
+    if (b.memberNo) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  const usesMemberNumbers = rows.some(([, m]) => !!m.memberNo);
 
   return (
     <>
@@ -32,14 +43,17 @@ export default function RegisterTab({ state, stats, actions }) {
 
       <div style={card}>
         <div style={{ ...cardTitle, marginBottom: 9 }}>Import members</div>
-        <div style={{ fontSize: 12, color: color.ink2, marginBottom: 9 }}>
-          One member per line — name only, or <span style={{ fontFamily: mono }}>Name, email</span>.
-          Each receives a unique single-use token.
+        <div style={{ fontSize: 12, color: color.ink2, marginBottom: 9, lineHeight: 1.6 }}>
+          One member per line. Paste your membership list as{" "}
+          <span style={{ fontFamily: mono }}>Number, Name</span> — the membership number becomes
+          that member&rsquo;s voting credential. Lines without a number (
+          <span style={{ fontFamily: mono }}>Name</span> or{" "}
+          <span style={{ fontFamily: mono }}>Name, email</span>) get a generated token instead.
         </div>
         <textarea
           rows={4}
           className="focus-navy"
-          placeholder={"Jane Wanjiru\nPeter Otieno, peter@example.com"}
+          placeholder={"KCIP-0001, Stanley Muithuri Maina\nKCIP-0002, Stella Mwangi"}
           value={state.importText}
           onChange={(e) => actions.setImportText(e.target.value)}
           style={{
@@ -101,15 +115,19 @@ export default function RegisterTab({ state, stats, actions }) {
           <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", tableLayout: "fixed" }}>
             <thead>
               <tr>
-                <th style={th("38%")}>Name</th>
-                <th style={th("22%")}>Token</th>
-                <th style={th("24%")}>Status</th>
-                <th style={{ borderBottom: `1px solid ${color.line}`, width: "16%" }}></th>
+                <th style={th("22%")}>Number</th>
+                <th style={th("30%")}>Name</th>
+                <th style={th("18%")}>Credential</th>
+                <th style={th("16%")}>Status</th>
+                <th style={{ borderBottom: `1px solid ${color.line}`, width: "14%" }}></th>
               </tr>
             </thead>
             <tbody>
               {rows.map(([tok, m]) => (
                 <tr key={tok}>
+                  <td style={{ ...td, fontFamily: mono, letterSpacing: ".03em" }}>
+                    {m.memberNo || "—"}
+                  </td>
                   <td
                     style={{
                       ...td,
@@ -120,8 +138,18 @@ export default function RegisterTab({ state, stats, actions }) {
                   >
                     {m.name}
                   </td>
-                  <td style={{ ...td, fontFamily: mono, letterSpacing: ".05em" }}>
-                    {state.showTok ? tok : "•••-•••"}
+                  <td style={{ ...td, fontFamily: mono, letterSpacing: ".03em" }}>
+                    {/* When the credential IS the membership number there is
+                        nothing to conceal — it is already in the Number column
+                        and printed on the member's card. Hiding it would only
+                        imply a secrecy the scheme does not have. */}
+                    {m.memberNo ? (
+                      <span style={{ color: color.ink3 }}>same as number</span>
+                    ) : state.showTok ? (
+                      tok
+                    ) : (
+                      "•••-•••"
+                    )}
                   </td>
                   <td style={td}>
                     {m.voted ? (
@@ -157,8 +185,19 @@ export default function RegisterTab({ state, stats, actions }) {
           lineHeight: 1.55,
         }}
       >
-        Keep tokens hidden while this screen is projected. Distribute privately — a printed slip
-        handed out at check-in works best, because check-in already establishes eligibility.
+        {usesMemberNumbers ? (
+          <>
+            <strong>Membership numbers are the voting credential.</strong> They are sequential and
+            already known to members, so anyone who reaches the ballot can try another member&rsquo;s
+            number. Open voting only while members are present, watch ballots cast against heads in
+            the room, and close it promptly.
+          </>
+        ) : (
+          <>
+            Keep tokens hidden while this screen is projected. Distribute privately — a printed slip
+            handed out at check-in works best, because check-in already establishes eligibility.
+          </>
+        )}
       </div>
     </>
   );
