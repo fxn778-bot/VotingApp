@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>*{box-sizing:border-box}body{margin:0;-webkit-font-smoothing:antialiased}</style>
+</helmet>
+<div style="{{rootStyle}}">
+
+<sc-if value="{{isLand}}" hint-placeholder-val="{{true}}">
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
+  <div style="max-width:460px;width:100%;text-align:center">
+    <div style="font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:#8A8171;margin-bottom:10px;font-weight:600">{{cfg.org}}</div>
+    <div style="font-family:'Source Serif 4',Georgia,serif;font-size:36px;font-weight:600;line-height:1.16;margin-bottom:12px">{{cfg.mtg}}</div>
+    <div style="font-size:14.5px;color:#6B6559;margin-bottom:38px">Register-authenticated ballots &middot; one member, one vote</div>
+
+    <button onClick="{{goAdmin}}" style="width:100%;display:flex;align-items:center;gap:16px;padding:20px 22px;background:#fff;border:1px solid rgba(33,31,26,.13);border-radius:16px;text-align:left;margin-bottom:12px;cursor:pointer;box-shadow:0 1px 2px rgba(33,31,26,.05)" style-hover="border-color:rgba(33,31,26,.28);box-shadow:0 6px 20px rgba(33,31,26,.08)">
+      <span style="width:44px;height:44px;border-radius:12px;background:#EFEAE0;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;color:#1F3A5F">&#9881;</span>
+      <span>
+        <span style="font-size:15px;font-weight:600;display:block">Administrator</span>
+        <span style="font-size:12.5px;color:#6B6559;display:block;margin-top:2px">Register, ballot, session, results</span>
+      </span>
+    </button>
+
+    <button onClick="{{goVoter}}" style="width:100%;display:flex;align-items:center;gap:16px;padding:20px 22px;background:#1F3A5F;border:1px solid #1F3A5F;border-radius:16px;text-align:left;cursor:pointer;box-shadow:0 4px 18px rgba(31,58,95,.28)" style-hover="background:#173050">
+      <span style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;color:#fff">&#10003;</span>
+      <span>
+        <span style="font-size:15px;font-weight:600;display:block;color:#fff">Cast my vote</span>
+        <span style="font-size:12.5px;color:rgba(255,255,255,.72);display:block;margin-top:2px">Members: enter your voting token</span>
+      </span>
+    </button>
+
+    <div style="text-align:left;margin-top:26px;padding:13px 15px;border-radius:10px;background:#F0EBDD;font-size:12px;color:#6B6559;line-height:1.6">Demo mode &mdash; all data lives in this browser tab only. Try the sample token <strong style="color:#211F1A;font-family:ui-monospace,monospace;letter-spacing:.05em">WBN-206</strong> (Sam Okafor, not yet voted) on the voter side.</div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{isAdmin}}" hint-placeholder-val="{{false}}">
+<div style="background:#fff;border-bottom:1px solid rgba(33,31,26,.1);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:9">
+  <div>
+    <div style="font-size:10.5px;color:#8A8171;text-transform:uppercase;letter-spacing:.05em;font-weight:600">{{cfg.org}}</div>
+    <div style="font-size:15.5px;font-weight:600;font-family:'Source Serif 4',Georgia,serif">Admin panel</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <sc-if value="{{phaseIsSetup}}"><span style="font-size:11px;font-weight:600;padding:4px 11px;border-radius:8px;background:#EFEAE0;color:#6B6559">Setup</span></sc-if>
+    <sc-if value="{{phaseIsVoting}}"><span style="font-size:11px;font-weight:600;padding:4px 11px;border-radius:8px;background:#E4F1EA;color:#1D7A5F">Voting open</span></sc-if>
+    <sc-if value="{{phaseIsClosedFlag}}"><span style="font-size:11px;font-weight:600;padding:4px 11px;border-radius:8px;background:#FBEBD3;color:#95610D">Closed</span></sc-if>
+    <button onClick="{{goLand}}" style="font-size:12px;padding:7px 12px;border:1px solid rgba(33,31,26,.16);border-radius:8px;background:#fff;cursor:pointer">&#8592; Exit</button>
+  </div>
+</div>
+
+<div style="max-width:760px;margin:0 auto;padding:22px 20px 70px">
+  <div style="display:flex;border-bottom:1px solid rgba(33,31,26,.1);margin-bottom:22px;overflow-x:auto;gap:2px">
+    <button onClick="{{setTabBallot}}" style="{{tabBallotStyle}}">Ballot</button>
+    <button onClick="{{setTabRegister}}" style="{{tabRegisterStyle}}">Register</button>
+    <button onClick="{{setTabSession}}" style="{{tabSessionStyle}}">Session</button>
+    <button onClick="{{setTabResults}}" style="{{tabResultsStyle}}">Results</button>
+  </div>
+
+  <sc-if value="{{tabIsBallot}}" hint-placeholder-val="{{true}}">
+    <sc-if value="{{ballotLocked}}"><div style="padding:11px 14px;border-radius:10px;font-size:12.5px;margin-bottom:14px;background:#FBEBD3;color:#95610D;line-height:1.55">Voting is active. Close voting in the Session tab to edit the ballot.</div></sc-if>
+    <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:16px;padding:18px 20px;margin-bottom:14px">
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:14px">Meeting</div>
+      <div style="margin-bottom:12px"><label style="font-size:10.5px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Organization</label>
+        <input type="text" value="{{cfg.org}}" disabled="{{ballotLocked}}" onChange="{{onOrgChange}}" style="font-family:inherit;font-size:13px;padding:9px 12px;border:1px solid rgba(33,31,26,.15);border-radius:10px;background:#fff;color:#211F1A;width:100%;outline:none" style-focus="border-color:#1F3A5F"></div>
+      <div style="margin-bottom:12px"><label style="font-size:10.5px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Meeting name</label>
+        <input type="text" value="{{cfg.mtg}}" disabled="{{ballotLocked}}" onChange="{{onMtgChange}}" style="font-family:inherit;font-size:13px;padding:9px 12px;border:1px solid rgba(33,31,26,.15);border-radius:10px;background:#fff;color:#211F1A;width:100%;outline:none" style-focus="border-color:#1F3A5F"></div>
+      <div><label style="font-size:10.5px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Quorum (members required)</label>
+        <input type="number" min="0" value="{{cfg.quorum}}" disabled="{{ballotLocked}}" onChange="{{onQuorumChange}}" style="font-family:inherit;font-size:13px;padding:9px 12px;border:1px solid rgba(33,31,26,.15);border-radius:10px;background:#fff;color:#211F1A;width:120px;outline:none" style-focus="border-color:#1F3A5F"></div>
+    </div>
+
+    <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:16px;padding:18px 20px;margin-bottom:14px">
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:14px">Ballot items</div>
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="2">
+        <div style="background:#F9F7F1;border:1px solid rgba(33,31,26,.09);border-radius:12px;padding:14px 16px;margin-bottom:11px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:11px">
+            <sc-if value="{{it.isElection}}"><span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:7px;background:#E6EEF6;color:#1F3A5F">Election</span></sc-if>
+            <sc-if value="{{it.isMotion}}"><span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:7px;background:#F0E6F6;color:#6B3FA0">Motion</span></sc-if>
+            <sc-if value="{{it.showRemove}}"><button onClick="{{it.onDelete}}" style="font-size:11px;background:none;border:none;color:#8A8171;cursor:pointer">Remove</button></sc-if>
+          </div>
+          <div style="margin-bottom:10px"><label style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Title</label>
+            <input type="text" value="{{it.title}}" disabled="{{ballotLocked}}" onChange="{{it.onTitleChange}}" style="font-family:inherit;font-size:12.5px;padding:8px 10px;border:1px solid rgba(33,31,26,.14);border-radius:8px;background:#fff;width:100%;outline:none" style-focus="border-color:#1F3A5F"></div>
+          <sc-if value="{{it.isElection}}">
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+              <label style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em">Seats</label>
+              <input type="number" min="1" value="{{it.seats}}" disabled="{{ballotLocked}}" onChange="{{it.onSeatsChange}}" style="font-family:inherit;font-size:12.5px;padding:6px 9px;border:1px solid rgba(33,31,26,.14);border-radius:8px;background:#fff;width:60px;outline:none">
+            </div>
+          </sc-if>
+          <sc-if value="{{it.isMotion}}">
+            <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+              <div><label style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Threshold</label>
+                <select value="{{it.thr}}" disabled="{{ballotLocked}}" onChange="{{it.onThrChange}}" style="font-family:inherit;font-size:12.5px;padding:7px 9px;border:1px solid rgba(33,31,26,.14);border-radius:8px;background:#fff">
+                  <option value="majority">Simple majority</option>
+                  <option value="two_thirds">Two-thirds</option>
+                  <option value="three_quarters">Three-quarters</option>
+                </select></div>
+              <div><label style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Abstentions</label>
+                <select value="{{it.absStr}}" disabled="{{ballotLocked}}" onChange="{{it.onAbsChange}}" style="font-family:inherit;font-size:12.5px;padding:7px 9px;border:1px solid rgba(33,31,26,.14);border-radius:8px;background:#fff">
+                  <option value="0">Excluded from denominator</option>
+                  <option value="1">Counted in denominator</option>
+                </select></div>
+            </div>
+          </sc-if>
+          <label style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">{{it.optionsLabel}}</label>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+            <sc-for list="{{it.optionRows}}" as="opt" hint-placeholder-count="3">
+              <span style="font-size:11.5px;background:#fff;border:1px solid rgba(33,31,26,.14);padding:4px 9px;border-radius:8px;display:inline-flex;align-items:center;gap:6px">{{opt.label}}<sc-if value="{{opt.showRemove}}"><button onClick="{{opt.onRemove}}" style="background:none;border:none;color:#8A8171;font-size:10px;padding:0;cursor:pointer">&#10005;</button></sc-if></span>
+            </sc-for>
+          </div>
+          <sc-if value="{{it.showAddCandidate}}">
+            <div style="display:flex;gap:8px">
+              <input type="text" placeholder="Add candidate&hellip;" value="{{it.newCandidate}}" onChange="{{it.onNewCandidateChange}}" onKeyDown="{{it.onNewCandidateKey}}" style="flex:1;font-family:inherit;font-size:12px;padding:7px 10px;border:1px solid rgba(33,31,26,.14);border-radius:8px;outline:none">
+              <button onClick="{{it.onAddCandidate}}" style="font-size:12px;padding:7px 13px;border:1px solid rgba(33,31,26,.16);border-radius:8px;background:#fff;cursor:pointer">Add</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{ballotUnlocked}}">
+        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:6px">
+          <button onClick="{{addElection}}" style="font-size:12.5px;padding:8px 14px;border:1px solid rgba(33,31,26,.16);border-radius:9px;background:#fff;cursor:pointer">+ Election</button>
+          <button onClick="{{addMotion}}" style="font-size:12.5px;padding:8px 14px;border:1px solid rgba(33,31,26,.16);border-radius:9px;background:#fff;cursor:pointer">+ Motion / bylaw</button>
+        </div>
+      </sc-if>
+    </div>
+    <sc-if value="{{ballotUnlocked}}"><button onClick="{{saveConfig}}" style="width:100%;padding:14px;font-size:14px;font-weight:600;border-radius:11px;background:#1F3A5F;color:#fff;border:none;cursor:pointer">{{saveMsg}}</button></sc-if>
+  </sc-if>
+
+  <sc-if value="{{tabIsRegister}}" hint-placeholder-val="{{false}}">
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:12px;padding:14px;flex:1;min-width:100px;text-align:center"><div style="font-size:25px;font-weight:600">{{stats.total}}</div><div style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">On register</div></div>
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:12px;padding:14px;flex:1;min-width:100px;text-align:center"><div style="font-size:25px;font-weight:600">{{stats.eligible}}</div><div style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">Eligible</div></div>
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:12px;padding:14px;flex:1;min-width:100px;text-align:center"><div style="font-size:25px;font-weight:600">{{stats.voted}}</div><div style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">Voted</div></div>
+    </div>
+    <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:16px;padding:18px 20px;margin-bottom:14px">
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:9px">Import members</div>
+      <div style="font-size:12px;color:#6B6559;margin-bottom:9px">One member per line &mdash; name only, or <span style="font-family:ui-monospace,monospace">Name, email</span>. Each receives a unique single-use token.</div>
+      <textarea rows="4" placeholder="Jane Wanjiru&#10;Peter Otieno, peter@example.com" value="{{importText}}" onChange="{{onImportTextChange}}" style="font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6;padding:9px 11px;border:1px solid rgba(33,31,26,.14);border-radius:9px;width:100%;outline:none;resize:vertical" style-focus="border-color:#1F3A5F"></textarea>
+      <div style="display:flex;gap:9px;margin-top:9px;flex-wrap:wrap">
+        <button onClick="{{doImport}}" style="font-size:12.5px;padding:8px 14px;border:1px solid rgba(33,31,26,.16);border-radius:9px;background:#fff;cursor:pointer">Import &amp; generate tokens</button>
+        <button onClick="{{clearRegister}}" style="font-size:12.5px;padding:8px 14px;border:1px solid rgba(33,31,26,.16);border-radius:9px;background:#fff;cursor:pointer">Clear register</button>
+      </div>
+      <sc-if value="{{hasImportMsg}}"><div style="margin-top:10px;padding:9px 12px;border-radius:9px;font-size:12px;background:#E4F1EA;color:#1D7A5F">{{importMsg}}</div></sc-if>
+    </div>
+    <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:16px;padding:18px 20px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:13.5px;font-weight:600">Members register</div>
+        <div style="display:flex;gap:8px">
+          <button onClick="{{toggleShowTok}}" style="font-size:11px;padding:6px 10px;border:1px solid rgba(33,31,26,.16);border-radius:7px;background:#fff;cursor:pointer">{{showTokLabel}}</button>
+          <button onClick="{{exportTokens}}" style="font-size:11px;padding:6px 10px;border:1px solid rgba(33,31,26,.16);border-radius:7px;background:#fff;cursor:pointer">Export slips</button>
+        </div>
+      </div>
+      <div style="max-height:360px;overflow-y:auto">
+        <table style="width:100%;font-size:12px;border-collapse:collapse;table-layout:fixed">
+          <thead><tr>
+            <th style="text-align:left;font-size:10px;text-transform:uppercase;color:#8A8171;font-weight:400;padding:6px 4px;border-bottom:1px solid rgba(33,31,26,.1);width:38%">Name</th>
+            <th style="text-align:left;font-size:10px;text-transform:uppercase;color:#8A8171;font-weight:400;padding:6px 4px;border-bottom:1px solid rgba(33,31,26,.1);width:22%">Token</th>
+            <th style="text-align:left;font-size:10px;text-transform:uppercase;color:#8A8171;font-weight:400;padding:6px 4px;border-bottom:1px solid rgba(33,31,26,.1);width:24%">Status</th>
+            <th style="border-bottom:1px solid rgba(33,31,26,.1);width:16%"></th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{regRows}}" as="m" hint-placeholder-count="4">
+              <tr>
+                <td style="padding:7px 4px;border-bottom:1px solid rgba(33,31,26,.08);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{m.name}}</td>
+                <td style="padding:7px 4px;border-bottom:1px solid rgba(33,31,26,.08);font-family:ui-monospace,monospace;letter-spacing:.05em">{{m.tokenDisplay}}</td>
+                <td style="padding:7px 4px;border-bottom:1px solid rgba(33,31,26,.08)">
+                  <sc-if value="{{m.isVoted}}"><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:7px;background:#E4F1EA;color:#1D7A5F">Voted</span></sc-if>
+                  <sc-if value="{{m.isNotVoted}}"><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:7px;background:#EFEAE0;color:#6B6559">Not voted</span></sc-if>
+                  <sc-if value="{{m.isSuspended}}"><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:7px;background:#FBE4E4;color:#B23B3B">Suspended</span></sc-if>
+                </td>
+                <td style="padding:7px 4px;border-bottom:1px solid rgba(33,31,26,.08);text-align:right"><button onClick="{{m.onToggle}}" style="font-size:10.5px;padding:3px 8px;border:1px solid rgba(33,31,26,.16);border-radius:6px;background:#fff;cursor:pointer">{{m.toggleLabel}}</button></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="padding:11px 14px;border-radius:10px;font-size:12.5px;background:#FBEBD3;color:#95610D;line-height:1.55">Keep tokens hidden while this screen is projected. Distribute privately &mdash; a printed slip handed out at check-in works best, because check-in already establishes eligibility.</div>
+  </sc-if>
+
+  <sc-if value="{{tabIsSession}}" hint-placeholder-val="{{false}}">
+    <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:16px;padding:18px 20px;margin-bottom:14px">
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:13px">Session control</div>
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px"><div style="width:9px;height:9px;border-radius:50%;{{phaseDotStyle}}"></div><span style="font-size:12.5px;color:#6B6559">{{phaseText}}</span></div>
+      <sc-if value="{{hasQuorum}}"><div style="padding:10px 13px;border-radius:9px;font-size:12px;margin-bottom:12px;{{quorumStyle}}">{{quorumText}}</div></sc-if>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <button onClick="{{openVoting}}" disabled="{{cannotOpen}}" style="font-size:12.5px;padding:9px 15px;border:1px solid rgba(33,31,26,.16);border-radius:9px;background:#fff;cursor:pointer;opacity:{{openOpacity}}">&#9654; Open voting</button>
+        <button onClick="{{closeVoting}}" disabled="{{cannotClose}}" style="font-size:12.5px;padding:9px 15px;border:1px solid rgba(33,31,26,.16);border-radius:9px;background:#fff;cursor:pointer;opacity:{{closeOpacity}}">&#9632; Close voting</button>
+        <button onClick="{{resetVotes}}" style="font-size:12.5px;padding:9px 15px;border:1px solid rgba(33,31,26,.16);border-radius:9px;background:#fff;cursor:pointer">&#8635; Reset votes</button>
+      </div>
+      <sc-if value="{{hasBlockers}}"><div style="font-size:12px;color:#6B6559;margin-top:10px">Before opening: {{blockersText}}.</div></sc-if>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:12px;padding:14px;flex:1;min-width:100px;text-align:center"><div style="font-size:25px;font-weight:600">{{stats.voted}}</div><div style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">Ballots cast</div></div>
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:12px;padding:14px;flex:1;min-width:100px;text-align:center"><div style="font-size:25px;font-weight:600">{{stats.remaining}}</div><div style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">Yet to vote</div></div>
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:12px;padding:14px;flex:1;min-width:100px;text-align:center"><div style="font-size:25px;font-weight:600">{{itemCount}}</div><div style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">Items</div></div>
+    </div>
+    <div style="background:#F0EBDD;border-radius:16px;padding:20px;text-align:center">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Member access QR code</div>
+      <div style="font-size:12px;color:#6B6559">Project this. Members scan, then enter the token from their slip.</div>
+      <div style="display:inline-block;background:#fff;padding:11px;border-radius:11px;margin:12px 0"><div id="qrbox"></div></div>
+      <div style="font-family:ui-monospace,monospace;font-size:10.5px;color:#8A8171;word-break:break-all;padding:8px 10px;background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:8px;text-align:left">{{joinLink}}</div>
+      <div style="display:flex;gap:9px;margin-top:12px;justify-content:center">
+        <button onClick="{{copyLink}}" style="font-size:12px;padding:8px 14px;border:1px solid rgba(33,31,26,.16);border-radius:9px;background:#fff;cursor:pointer">Copy link</button>
+        <button onClick="{{printPage}}" style="font-size:12px;padding:8px 14px;border:1px solid rgba(33,31,26,.16);border-radius:9px;background:#fff;cursor:pointer">Print</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{tabIsResults}}" hint-placeholder-val="{{false}}">
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:12px;padding:14px;flex:1;min-width:100px;text-align:center"><div style="font-size:25px;font-weight:600">{{stats.voted}}</div><div style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">Ballots cast</div></div>
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:12px;padding:14px;flex:1;min-width:100px;text-align:center"><div style="font-size:25px;font-weight:600">{{stats.eligible}}</div><div style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">Eligible</div></div>
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:12px;padding:14px;flex:1;min-width:100px;text-align:center"><div style="font-size:25px;font-weight:600">{{stats.turnout}}%</div><div style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;margin-top:3px">Turnout</div></div>
+    </div>
+    <sc-for list="{{resultsItems}}" as="ri" hint-placeholder-count="2">
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:16px;padding:18px 20px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:13px">
+          <div>
+            <sc-if value="{{ri.isElection}}"><span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:7px;background:#E6EEF6;color:#1F3A5F">Election</span></sc-if>
+            <sc-if value="{{ri.isMotion}}"><span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:7px;background:#F0E6F6;color:#6B3FA0">Motion</span></sc-if>
+            <div style="font-size:13.5px;font-weight:600;margin-top:7px">{{ri.title}}</div>
+          </div>
+          <div style="text-align:right"><div style="font-size:24px;font-weight:600;line-height:1">{{ri.total}}</div><div style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;margin-top:2px">votes</div></div>
+        </div>
+        <sc-for list="{{ri.bars}}" as="b" hint-placeholder-count="3">
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:{{b.weight}}">{{b.mark}}{{b.label}}</span><span style="color:#6B6559">{{b.count}} ({{b.pct}}%)</span></div>
+            <div style="height:16px;background:#F0EBDD;border-radius:5px;overflow:hidden"><div style="height:100%;border-radius:5px;transition:width .4s;width:{{b.pctStyle}}%;background:{{b.color}}"></div></div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ri.isEmpty}}"><div style="text-align:center;padding:6px 0;font-size:12px;color:#8A8171">No votes yet</div></sc-if>
+        <sc-if value="{{ri.hasVerdict}}"><div style="padding:10px 13px;border-radius:9px;font-size:12px;margin-top:8px;line-height:1.6;{{ri.verdictStyle}}">{{ri.verdictHtml}}</div></sc-if>
+      </div>
+    </sc-for>
+    <button onClick="{{exportResults}}" style="width:100%;padding:14px;font-size:14px;font-weight:600;border-radius:11px;background:#1F3A5F;color:#fff;border:none;cursor:pointer">{{exportMsg}}</button>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isVoter}}" hint-placeholder-val="{{false}}">
+  <div style="background:#fff;border-bottom:1px solid rgba(33,31,26,.1);padding:14px 22px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-size:10.5px;color:#8A8171;text-transform:uppercase;letter-spacing:.05em;font-weight:600">{{cfg.org}}</div>
+      <div style="font-size:15.5px;font-weight:600;font-family:'Source Serif 4',Georgia,serif">{{cfg.mtg}}</div>
+    </div>
+    <button onClick="{{goLand}}" style="font-size:12px;padding:7px 12px;border:1px solid rgba(33,31,26,.16);border-radius:8px;background:#fff;cursor:pointer">&#8592;</button>
+  </div>
+  <div style="max-width:480px;margin:0 auto;padding:20px 18px 60px">
+
+    <sc-if value="{{vIsEntry}}" hint-placeholder-val="{{true}}">
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:16px;padding:22px 22px 24px">
+        <div style="font-size:17px;font-weight:600;margin-bottom:6px;font-family:'Source Serif 4',Georgia,serif">Member verification</div>
+        <div style="font-size:12.5px;color:#6B6559;margin-bottom:16px;line-height:1.6">Enter the voting token issued to you at check-in. Each token may be used once.</div>
+        <sc-if value="{{hasVerr}}"><div style="padding:10px 13px;border-radius:9px;font-size:12px;margin-bottom:12px;background:#FBE4E4;color:#B23B3B">{{verr}}</div></sc-if>
+        <label style="font-size:10.5px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Voting token</label>
+        <input type="text" value="{{vtoken}}" placeholder="ABC-123" autoComplete="off" onChange="{{onTokenChange}}" onKeyDown="{{onTokenKey}}"
+          style="font-family:ui-monospace,monospace;font-size:20px;letter-spacing:.16em;text-align:center;padding:14px;border:1px solid rgba(33,31,26,.16);border-radius:11px;width:100%;outline:none;margin-bottom:16px" style-focus="border-color:#1F3A5F">
+        <button onClick="{{doVerify}}" style="width:100%;padding:14px;font-size:14px;font-weight:600;border-radius:11px;background:#1F3A5F;color:#fff;border:none;cursor:pointer">Verify &amp; open ballot</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{vIsWait}}" hint-placeholder-val="{{false}}">
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:16px;padding:44px 22px;text-align:center">
+        <div style="font-size:30px;margin-bottom:12px">&#8987;</div>
+        <div style="font-size:17px;font-weight:600;margin-bottom:8px;font-family:'Source Serif 4',Georgia,serif">Voting not yet open</div>
+        <div style="font-size:12.5px;color:#6B6559;line-height:1.7">Verified as {{vname}}.<br>Waiting for the chair to open voting.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{vIsClosed}}" hint-placeholder-val="{{false}}">
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:16px;padding:44px 22px;text-align:center">
+        <div style="font-size:30px;margin-bottom:12px">&#128274;</div>
+        <div style="font-size:17px;font-weight:600;margin-bottom:8px;font-family:'Source Serif 4',Georgia,serif">Voting has closed</div>
+        <div style="font-size:12.5px;color:#6B6559">Please see the meeting chair.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{vIsDone}}" hint-placeholder-val="{{false}}">
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:16px;padding:44px 22px;text-align:center">
+        <div style="width:52px;height:52px;border-radius:50%;background:#E4F1EA;color:#1D7A5F;font-size:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">&#10003;</div>
+        <div style="font-size:17px;font-weight:600;margin-bottom:8px;font-family:'Source Serif 4',Georgia,serif">Ballot submitted</div>
+        <div style="font-size:12.5px;color:#6B6559;line-height:1.7">Thank you, {{vname}}.<br>Your token is now used and cannot vote again.<br><br>Your choices are not linked to your name.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{vIsBallot}}" hint-placeholder-val="{{false}}">
+      <div style="background:#fff;border:1px solid rgba(33,31,26,.1);border-radius:16px;padding:20px 20px 22px">
+        <div style="display:flex;gap:4px;margin-bottom:16px">
+          <sc-for list="{{progressSegments}}" as="seg" hint-placeholder-count="2">
+            <div style="height:4px;flex:1;border-radius:3px;background:{{seg.color}}"></div>
+          </sc-for>
+        </div>
+        <div style="font-size:10px;color:#8A8171;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Item {{vidxDisplay}} of {{itemCount}}</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:5px;font-family:'Source Serif 4',Georgia,serif">{{currentTitle}}</div>
+        <div style="font-size:12.5px;color:#6B6559;margin-bottom:15px">{{currentHint}}</div>
+        <sc-for list="{{currentOptions}}" as="opt" hint-placeholder-count="3">
+          <button onClick="{{opt.onPick}}" style="width:100%;text-align:left;padding:13px 15px;border-radius:10px;font-size:13.5px;display:flex;align-items:center;gap:11px;margin-bottom:7px;cursor:pointer;{{opt.style}}">
+            <span style="width:19px;height:19px;flex-shrink:0;display:flex;align-items:center;justify-content:center;{{opt.dotStyle}}"><sc-if value="{{opt.selected}}"><span style="width:8px;height:8px;border-radius:50%;background:#fff"></span></sc-if></span>{{opt.label}}
+          </button>
+        </sc-for>
+        <sc-if value="{{hasVerr}}"><div style="padding:10px 13px;border-radius:9px;font-size:12px;margin-top:8px;background:#FBE4E4;color:#B23B3B">{{verr}}</div></sc-if>
+        <button onClick="{{onBallotNext}}" disabled="{{cannotProceed}}" style="width:100%;margin-top:12px;padding:14px;font-size:14px;font-weight:600;border-radius:11px;background:#1F3A5F;color:#fff;border:none;cursor:pointer;opacity:{{proceedOpacity}}">{{proceedLabel}}</button>
+      </div>
+    </sc-if>
+  </div>
+</sc-if>
+
+</div>
+</helmet>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;paperTone&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Warm paper&quot;,&quot;Cool archive&quot;,&quot;Ink slate&quot;],&quot;default&quot;:&quot;Warm paper&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Feel&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;options&quot;:[&quot;#1F3A5F&quot;,&quot;#1D6B4A&quot;,&quot;#7A3B2E&quot;,&quot;#3E3466&quot;],&quot;default&quot;:&quot;#1D6B4A&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Feel&quot;},&quot;voice&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Formal governance&quot;,&quot;Plain language&quot;],&quot;default&quot;:&quot;Formal governance&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Copy&quot;}}">
+const ALPHA='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const BARS=['#1F3A5F','#1D7A5F','#B4750E','#6B3FA0','#0F6E6E','#B23B3B'];
+
+function member(name,email,eligible,voted){ return {name,email,eligible,voted}; }
+
+class Component extends DCLogic {
+  state = {
+    screen:'land', tab:'ballot',
+    phase:'voting',
+    cfg:{
+      org:'Maple Grove Homeowners Association',
+      mtg:'2026 Annual General Meeting',
+      quorum:15,
+      items:[
+        {id:'itm1',type:'election',title:'Board Director (2 seats)',seats:2,thr:'majority',abs:false,options:['Amara Chen','Diego Ruiz','Priya Nair','Sam Okafor']},
+        {id:'itm2',type:'motion',title:'Approve 2026 Operating Budget',seats:1,thr:'majority',abs:false,options:['For','Against','Abstain']}
+      ]
+    },
+    reg:{
+      'JQR-482':member('Amara Chen','amara.chen@example.com',true,true),
+      'MXT-719':member('Diego Ruiz','diego.ruiz@example.com',true,true),
+      'PKL-350':member('Priya Nair','priya.nair@example.com',true,true),
+      'WBN-206':member('Sam Okafor','sam.okafor@example.com',true,false),
+      'GFC-931':member('Grace Mutiso','grace.mutiso@example.com',true,true),
+      'TYD-104':member('Peter Otieno','peter.otieno@example.com',true,true),
+      'HNS-573':member('Jane Wanjiru','',true,true),
+      'LZP-826':member('Lucia Fernandez','lucia.f@example.com',true,true),
+      'KVR-458':member('Tom Bakker','tom.bakker@example.com',true,false),
+      'DAM-762':member('Nadia Hassan','nadia.hassan@example.com',true,true),
+      'BQX-315':member('Oliver Bright','oliver.bright@example.com',true,false),
+      'SRT-940':member('Wei Zhang','wei.zhang@example.com',true,true),
+      'FWN-187':member('Fatima Al-Sayed','fatima.a@example.com',true,true),
+      'CUP-624':member('Marcus Webb','marcus.webb@example.com',true,true),
+      'ELV-359':member('Elena Rossi','elena.rossi@example.com',false,false),
+      'HDB-701':member('Hank Dubois','hank.dubois@example.com',false,false),
+      'IKO-543':member('Ines Kova','ines.kova@example.com',true,false),
+      'RVS-268':member('Ravi Shankar','ravi.shankar@example.com',true,false)
+    },
+    tal:{ itm1:{'Amara Chen':7,'Diego Ruiz':6,'Priya Nair':5,'Sam Okafor':3}, itm2:{For:8,Against:2,Abstain:1} },
+    showTok:false, importText:'', importMsg:'', saveMsg:'Save ballot configuration', exportMsg:'Export results record',
+    newCandidates:{},
+    vstep:'entry', vtoken:'', vname:'', vidx:0, vsel:{}, verr:''
+  };
+
+  stats(){
+    const m = Object.values(this.state.reg);
+    const eligible = m.filter(x=>x.eligible).length;
+    const voted = m.filter(x=>x.voted).length;
+    return { total:m.length, eligible, voted, remaining:Math.max(0,eligible-voted), turnout: eligible? Math.round(voted/eligible*100):0 };
+  }
+  newToken(){ let t=''; for(let i=0;i<6;i++) t+=ALPHA[Math.floor(Math.random()*ALPHA.length)]; return t.slice(0,3)+'-'+t.slice(3); }
+  normTok(raw){ const s=String(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,''); return s.length===6? s.slice(0,3)+'-'+s.slice(3): s; }
+  uid(){ return 'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+
+  goAdmin=()=>this.setState({screen:'admin'});
+  goVoter=()=>this.setState({screen:'voter',vstep:'entry',vtoken:'',verr:''});
+  goLand=()=>this.setState({screen:'land'});
+  setTab=(tab)=>this.setState({tab});
+
+  onOrgChange=(e)=>this.setState(s=>({cfg:{...s.cfg,org:e.target.value}}));
+  onMtgChange=(e)=>this.setState(s=>({cfg:{...s.cfg,mtg:e.target.value}}));
+  onQuorumChange=(e)=>this.setState(s=>({cfg:{...s.cfg,quorum:parseInt(e.target.value)||0}}));
+
+  addItem(type){
+    this.setState(s=>({cfg:{...s.cfg, items:[...s.cfg.items,{id:this.uid(),type,title:type==='election'?'Election: ':'Motion: ',seats:1,thr:'majority',abs:false,options:type==='motion'?['For','Against','Abstain']:[]}]}}));
+  }
+  addElection=()=>this.addItem('election');
+  addMotion=()=>this.addItem('motion');
+  delItem(id){ this.setState(s=>({cfg:{...s.cfg, items:s.cfg.items.filter(x=>x.id!==id)}})); }
+  setItemField(id,field,val){ this.setState(s=>({cfg:{...s.cfg, items:s.cfg.items.map(x=>x.id===id?{...x,[field]:val}:x)}})); }
+  addOpt(id){
+    const v=(this.state.newCandidates[id]||'').trim(); if(!v) return;
+    this.setState(s=>({cfg:{...s.cfg, items:s.cfg.items.map(x=> x.id===id && !x.options.includes(v) ? {...x,options:[...x.options,v]} : x)}, newCandidates:{...s.newCandidates,[id]:''}}));
+  }
+  delOpt(id,o){ this.setState(s=>({cfg:{...s.cfg, items:s.cfg.items.map(x=>x.id===id?{...x,options:x.options.filter(y=>y!==o)}:x)}})); }
+  saveConfig=()=>{ this.setState({saveMsg:'Saved'}); setTimeout(()=>this.setState({saveMsg:'Save ballot configuration'}),1600); };
+
+  doImport=()=>{
+    const raw=(this.state.importText||'').trim(); if(!raw) return;
+    const lines=raw.split('\n').map(x=>x.trim()).filter(Boolean);
+    const reg={...this.state.reg};
+    const names=new Set(Object.values(reg).map(m=>m.name.toLowerCase()));
+    const toks=new Set(Object.keys(reg));
+    let added=0, dupes=0;
+    for(const line of lines){
+      const parts=line.split(',').map(x=>x.trim());
+      const name=parts[0]; if(!name) continue;
+      if(names.has(name.toLowerCase())){ dupes++; continue; }
+      let t,guard=0; do{ t=this.newToken(); guard++; }while(toks.has(t)&&guard<60);
+      toks.add(t); names.add(name.toLowerCase());
+      reg[t]={name,email:parts[1]||'',eligible:true,voted:false};
+      added++;
+    }
+    const msg=`${added} member${added!==1?'s':''} added${dupes?`, ${dupes} duplicate${dupes!==1?'s':''} skipped`:''}`;
+    this.setState({reg, importText:'', importMsg:msg});
+    setTimeout(()=>this.setState({importMsg:''}),3500);
+  };
+  onImportTextChange=(e)=>this.setState({importText:e.target.value});
+  clearRegister=()=>{ if(confirm('Clear the entire members register, including all tokens?')) this.setState({reg:{}}); };
+  toggleEligible(tok){ this.setState(s=>({reg:{...s.reg,[tok]:{...s.reg[tok],eligible:!s.reg[tok].eligible}}})); }
+  toggleShowTok=()=>this.setState(s=>({showTok:!s.showTok}));
+  copyText(text,note){ if(navigator.clipboard) navigator.clipboard.writeText(text).then(()=>alert(note)).catch(()=>alert('Copy failed')); else alert('Clipboard unavailable'); }
+  exportTokens=()=>{
+    const lines=Object.entries(this.state.reg).sort((a,b)=>a[1].name.localeCompare(b[1].name)).map(([t,m])=>`${m.name}${m.email?' <'+m.email+'>':''}\t${t}`);
+    this.copyText(`${this.state.cfg.org} — ${this.state.cfg.mtg}\nVOTING TOKENS (CONFIDENTIAL)\n\n${lines.join('\n')}\n`,'Token slips copied. Paste into a document to print or mail-merge.');
+  };
+
+  openVoting=()=>this.setState({phase:'voting'});
+  closeVoting=()=>this.setState({phase:'closed'});
+  resetVotes=()=>{
+    if(!confirm('Reset all votes and re-enable every token? This cannot be undone.')) return;
+    const reg={...this.state.reg}; Object.keys(reg).forEach(t=>reg[t]={...reg[t],voted:false});
+    this.setState({tal:{},reg});
+  };
+  copyLink=()=>this.copyText(this.joinLink(),'Link copied');
+  printPage=()=>window.print();
+  joinLink(){ const slug=(this.state.cfg.org||'org').toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,16)||'org'; return `https://vote.${slug}.org/m/AGM2026`; }
+
+  verdict(it,tv){
+    const f=tv['For']||0, a=tv['Against']||0, ab=tv['Abstain']||0;
+    const den = it.abs ? (f+a+ab) : (f+a);
+    if(!den) return null;
+    const frac={majority:.5,two_thirds:2/3,three_quarters:.75}[it.thr||'majority'];
+    const req = (it.thr==='majority'||!it.thr) ? Math.floor(den*.5)+1 : Math.ceil(den*frac);
+    return {den,req,pass:f>=req,f};
+  }
+  exportResults=()=>{
+    const s=this.stats(); const {cfg,tal}=this.state;
+    let o=`${cfg.org}\n${cfg.mtg}\nRESULTS RECORD\n\nEligible members: ${s.eligible}\nBallots cast: ${s.voted}\nQuorum required: ${cfg.quorum||'not set'}\n`;
+    cfg.items.forEach((it,n)=>{
+      const tv=tal[it.id]||{};
+      const total=it.options.reduce((x,q)=>x+(tv[q]||0),0);
+      o+=`\n${'-'.repeat(46)}\nITEM ${n+1} — ${it.title}\n`;
+      it.options.forEach(q=>{ o+=`  ${q}: ${tv[q]||0}\n`; });
+      o+=`  Total: ${total}\n`;
+      if(it.type==='motion'){
+        const r=this.verdict(it,tv);
+        if(r) o+=`  Threshold: ${it.thr||'majority'} (abstentions ${it.abs?'counted':'excluded'})\n  Denominator: ${r.den} | Required: ${r.req} | In favour: ${r.f}\n  Result: ${r.pass?'CARRIED':'NOT CARRIED'}\n`;
+      } else {
+        const w=it.options.map(q=>({q,c:tv[q]||0})).sort((a,b)=>b.c-a.c).slice(0,it.seats).filter(x=>x.c>0);
+        o+=`  Seats: ${it.seats}\n  Elected: ${w.map(x=>x.q).join(', ')||'none'}\n`;
+      }
+    });
+    o+=`\n\nTeller: ____________________   Teller: ____________________\nSecretary: _________________   Date: ______________________\n`;
+    this.copyText(o,'Results record copied to clipboard.');
+    this.setState({exportMsg:'Copied ✓'}); setTimeout(()=>this.setState({exportMsg:'Export results record'}),1600);
+  };
+
+  onTokenChange=(e)=>this.setState({vtoken:e.target.value});
+  onTokenKey=(e)=>{ if(e.key==='Enter') this.doVerify(); };
+  doVerify=()=>{
+    const t=this.normTok(this.state.vtoken);
+    if(!t){ this.setState({verr:'Please enter your voting token.'}); return; }
+    const m=this.state.reg[t];
+    if(!m){ this.setState({verr:'Token not recognised. Check your slip, or see the registration desk.'}); return; }
+    if(!m.eligible){ this.setState({verr:'This membership is not eligible to vote at this meeting. Please see the registration desk.'}); return; }
+    if(m.voted){ this.setState({verr:'This token has already been used to cast a ballot.'}); return; }
+    this.setState({vtoken:t, vname:m.name, verr:''});
+    const phase=this.state.phase;
+    if(phase==='setup'){ this.setState({vstep:'wait'}); return; }
+    if(phase==='closed'){ this.setState({vstep:'closed'}); return; }
+    this.setState({vidx:0, vsel:{}, vstep:'ballot'});
+  };
+  pick(id,o,multi,seats){
+    const cur=this.state.vsel[id]||[];
+    let next;
+    if(!multi) next = (cur[0]===o) ? [] : [o];
+    else { if(cur.includes(o)) next=cur.filter(x=>x!==o); else if(cur.length<seats) next=[...cur,o]; else return; }
+    this.setState(s=>({vsel:{...s.vsel,[id]:next}}));
+  };
+  onBallotNext=()=>{
+    const items=this.state.cfg.items;
+    if(this.state.vidx>=items.length-1){ this.doSubmit(); return; }
+    this.setState(s=>({vidx:s.vidx+1}));
+  };
+  doSubmit(){
+    const {phase,reg,vtoken,vsel,tal}=this.state;
+    if(phase!=='voting'){ this.setState({verr:'Voting is no longer open.',vstep:'closed'}); return; }
+    const m=reg[vtoken];
+    if(!m){ this.setState({verr:'Token not recognised.'}); return; }
+    if(m.voted){ this.setState({verr:'This token has already been used.'}); return; }
+    const newTal={...tal};
+    for(const [item,choices] of Object.entries(vsel)){
+      newTal[item]={...(newTal[item]||{})};
+      choices.forEach(c=>{ newTal[item][c]=(newTal[item][c]||0)+1; });
+    }
+    const newReg={...reg,[vtoken]:{...m,voted:true,votedAt:Date.now()}};
+    this.setState({tal:newTal, reg:newReg, vstep:'done'});
+  }
+
+  componentDidUpdate(){ this.maybeDrawQR(); }
+  componentDidMount(){ this.maybeDrawQR(); }
+  maybeDrawQR(){
+    if(this.state.screen!=='admin'||this.state.tab!=='session') return;
+    const el=document.getElementById('qrbox'); if(!el||typeof QRCode==='undefined'||el.childElementCount) return;
+    try{ new QRCode(el,{text:this.joinLink(),width:170,height:170,correctLevel:QRCode.CorrectLevel.M}); }catch(e){}
+  }
+
+  renderVals(){
+    const s=this.state, cfg=s.cfg;
+    const stats=this.stats();
+    const tabStyle=(active)=> active
+      ? "font-size:13px;padding:9px 14px;border:none;border-bottom:2.5px solid #211F1A;background:none;color:#211F1A;font-weight:600;white-space:nowrap;cursor:pointer;border-radius:0"
+      : "font-size:13px;padding:9px 14px;border:none;border-bottom:2.5px solid transparent;background:none;color:#8A8171;white-space:nowrap;cursor:pointer;border-radius:0";
+
+    const items = cfg.items.map(it=>({
+      ...it,
+      isElection: it.type==='election', isMotion: it.type==='motion',
+      showRemove: s.phase==='setup',
+      absStr: it.abs?'1':'0',
+      optionsLabel: it.type==='election'?'Candidates':'Options',
+      showAddCandidate: s.phase==='setup' && it.type==='election',
+      newCandidate: s.newCandidates[it.id]||'',
+      onTitleChange:(e)=>this.setItemField(it.id,'title',e.target.value),
+      onSeatsChange:(e)=>this.setItemField(it.id,'seats',Math.max(1,parseInt(e.target.value)||1)),
+      onThrChange:(e)=>this.setItemField(it.id,'thr',e.target.value),
+      onAbsChange:(e)=>this.setItemField(it.id,'abs',e.target.value==='1'),
+      onDelete:()=>this.delItem(it.id),
+      onNewCandidateChange:(e)=>this.setState(st=>({newCandidates:{...st.newCandidates,[it.id]:e.target.value}})),
+      onNewCandidateKey:(e)=>{ if(e.key==='Enter') this.addOpt(it.id); },
+      onAddCandidate:()=>this.addOpt(it.id),
+      optionRows: it.options.map(o=>({ label:o, showRemove:s.phase==='setup', onRemove:()=>this.delOpt(it.id,o) }))
+    }));
+
+    const regRows = Object.entries(s.reg).sort((a,b)=>a[1].name.localeCompare(b[1].name)).map(([tok,m])=>({
+      name:m.name, tokenDisplay: s.showTok? tok : '•••-•••',
+      isVoted: m.voted, isNotVoted: !m.voted && m.eligible, isSuspended: !m.eligible,
+      toggleLabel: m.eligible?'Suspend':'Restore', onToggle:()=>this.toggleEligible(tok)
+    }));
+
+    const met = cfg.quorum>0 && stats.voted>=cfg.quorum;
+    const blockers=[]; if(!cfg.items.length) blockers.push('add a ballot item'); if(!stats.eligible) blockers.push('import the members register');
+
+    const resultsItems = cfg.items.map(it=>{
+      const tv = s.tal[it.id]||{};
+      const total = it.options.reduce((x,o)=>x+(tv[o]||0),0);
+      const ranked = it.options.map(o=>({o,c:tv[o]||0})).sort((a,b)=>b.c-a.c);
+      const winners = it.type==='election' && total>0 ? ranked.slice(0,it.seats).filter(x=>x.c>0).map(x=>x.o) : [];
+      const bars = it.options.map((o,i)=>{
+        const c=tv[o]||0, pct= total? Math.round(c/total*100):0, w=winners.includes(o);
+        return { label:o, count:c, pct, pctStyle:pct, color:BARS[i%BARS.length], weight: w?600:400, mark: w?'▲ ':'' };
+      });
+      let hasVerdict=false, verdictStyle='', verdictHtml='';
+      if(it.type==='motion'){
+        const r=this.verdict(it,tv);
+        if(r){
+          hasVerdict=true;
+          verdictStyle = r.pass? 'background:#E4F1EA;color:#1D7A5F' : 'background:#FBE4E4;color:#B23B3B';
+          const thrLabel={majority:'Simple majority',two_thirds:'Two-thirds',three_quarters:'Three-quarters'}[it.thr||'majority'];
+          verdictHtml = `${r.pass?'CARRIED':'NOT CARRIED'} · ${thrLabel} of ${r.den} (abstentions ${it.abs?'counted':'excluded'}) · ${r.req} needed, ${r.f} in favour`;
+        }
+      } else if(winners.length){
+        hasVerdict=true; verdictStyle='background:#E4F1EA;color:#1D7A5F';
+        verdictHtml = `ELECTED: ${winners.join(', ')}`;
+      }
+      return { isElection: it.type==='election', isMotion: it.type==='motion', title: it.title, total, bars, isEmpty: total===0, hasVerdict, verdictStyle, verdictHtml };
+    });
+
+    // voter ballot
+    const curItem = cfg.items[s.vidx];
+    const progressSegments = cfg.items.map((_,i)=>({ color: i<s.vidx?'#639922':i===s.vidx?'#1D9E75':'rgba(33,31,26,.12)' }));
+    let currentOptions=[], currentTitle='', currentHint='', cannotProceed=true;
+    if(curItem){
+      const multi = curItem.type==='election' && curItem.seats>1;
+      const cur = s.vsel[curItem.id]||[];
+      currentTitle = curItem.title;
+      currentHint = multi? `Select up to ${curItem.seats} — ${cur.length} selected` : (curItem.type==='election'?'Select one candidate':'Cast your vote on this motion');
+      currentOptions = curItem.options.map(o=>{
+        const on = cur.includes(o);
+        return {
+          label:o, selected:on,
+          style: on? 'border:1px solid #1D9E75;background:#E1F5EE;color:#085041' : 'border:1px solid rgba(33,31,26,.14);background:#fff;color:#211F1A',
+          dotStyle: (on? 'border:1.5px solid #1D9E75;background:#1D9E75':'border:1.5px solid rgba(33,31,26,.28);background:transparent') + (multi? ';border-radius:4px':';border-radius:50%'),
+          onPick:()=>this.pick(curItem.id,o,multi,curItem.seats)
+        };
+      });
+      cannotProceed = cur.length===0;
+    }
+    const last = s.vidx>=cfg.items.length-1;
+
+    const tone = this.props.paperTone || 'Warm paper';
+    const accent = this.props.accent || '#1F3A5F';
+    const T = {
+      'Warm paper': {bg:'#F6F3EC', surface:'#fff', soft:'#F0EBDD', ink:'#211F1A', ink2:'#6B6559', ink3:'#8A8171', line:'rgba(33,31,26,.11)'},
+      'Cool archive': {bg:'#EEF1F4', surface:'#fff', soft:'#E3E8EE', ink:'#161B21', ink2:'#5A6470', ink3:'#8892A0', line:'rgba(22,27,33,.12)'},
+      'Ink slate': {bg:'#1B1D21', surface:'#24272C', soft:'#2C3037', ink:'#ECEAE4', ink2:'#A3A7AE', ink3:'#7B8089', line:'rgba(255,255,255,.10)'}
+    }[tone];
+    const plain = (this.props.voice||'Formal governance')==='Plain language';
+
+    return {
+      rootStyle: `min-height:100vh;background:${T.bg};color:${T.ink};font-family:'Public Sans',system-ui,sans-serif`,
+      surfaceStyle: `background:${T.surface};border:1px solid ${T.line}`,
+      softStyle: `background:${T.soft}`,
+      headerStyle: `background:${T.surface};border-bottom:1px solid ${T.line}`,
+      mutedStyle: `color:${T.ink2}`,
+      accentBtnStyle: `background:${accent};color:#fff;border:1px solid ${accent}`,
+      accentSoftStyle: `background:${accent}1A;color:${accent}`,
+      landTagline: plain ? 'One member, one vote — nobody can vote twice' : 'Register-authenticated ballots · one member, one vote',
+      adminCardDesc: plain ? 'Set up the vote, check people in, see results' : 'Register, ballot, session, results',
+      voterCardDesc: plain ? 'Got a token slip? Start here' : 'Members: enter your voting token',
+      verifyTitle: plain ? 'Check your token' : 'Member verification',
+      verifyBody: plain ? 'Type the code from the slip you were given at check-in. It only works once.' : 'Enter the voting token issued to you at check-in. Each token may be used once.',
+      isLand: s.screen==='land', isAdmin: s.screen==='admin', isVoter: s.screen==='voter',
+      goAdmin: this.goAdmin, goVoter: this.goVoter, goLand: this.goLand,
+      cfg, stats, itemCount: cfg.items.length,
+
+      phaseIsSetup: s.phase==='setup', phaseIsVoting: s.phase==='voting', phaseIsClosedFlag: s.phase==='closed',
+
+      tabIsBallot: s.tab==='ballot', tabIsRegister: s.tab==='register', tabIsSession: s.tab==='session', tabIsResults: s.tab==='results',
+      setTabBallot:()=>this.setTab('ballot'), setTabRegister:()=>this.setTab('register'), setTabSession:()=>this.setTab('session'), setTabResults:()=>this.setTab('results'),
+      tabBallotStyle: tabStyle(s.tab==='ballot'), tabRegisterStyle: tabStyle(s.tab==='register'), tabSessionStyle: tabStyle(s.tab==='session'), tabResultsStyle: tabStyle(s.tab==='results'),
+
+      ballotLocked: s.phase!=='setup', ballotUnlocked: s.phase==='setup',
+      onOrgChange: this.onOrgChange, onMtgChange: this.onMtgChange, onQuorumChange: this.onQuorumChange,
+      items, addElection: this.addElection, addMotion: this.addMotion, saveConfig: this.saveConfig, saveMsg: s.saveMsg,
+
+      regRows, hasImportMsg: !!s.importMsg, importMsg: s.importMsg, importText: s.importText, onImportTextChange: this.onImportTextChange,
+      doImport: this.doImport, clearRegister: this.clearRegister, toggleShowTok: this.toggleShowTok, showTokLabel: s.showTok?'Hide tokens':'Show tokens', exportTokens: this.exportTokens,
+
+      phaseDotStyle: `background:${s.phase==='setup'?'#bbb':s.phase==='voting'?'#639922':'#E24B4A'}`,
+      phaseText: {setup:'Not started',voting:'Voting is open',closed:'Voting closed'}[s.phase],
+      hasQuorum: cfg.quorum>0,
+      quorumStyle: met? 'background:#E4F1EA;color:#1D7A5F' : 'background:#FBEBD3;color:#95610D',
+      quorumText: `Quorum ${cfg.quorum} required · ${stats.voted} participating · ${met?'quorum met':(cfg.quorum-stats.voted)+' more needed'}`,
+      cannotOpen: s.phase==='voting'||blockers.length>0, cannotClose: s.phase!=='voting',
+      openOpacity: (s.phase==='voting'||blockers.length>0)?0.4:1, closeOpacity: s.phase!=='voting'?0.4:1,
+      openVoting: this.openVoting, closeVoting: this.closeVoting, resetVotes: this.resetVotes,
+      hasBlockers: blockers.length>0, blockersText: blockers.join('; '),
+      joinLink: this.joinLink(), copyLink: this.copyLink, printPage: this.printPage,
+
+      resultsItems, exportResults: this.exportResults, exportMsg: s.exportMsg,
+
+      vIsEntry: s.vstep==='entry', vIsWait: s.vstep==='wait', vIsClosed: s.vstep==='closed', vIsDone: s.vstep==='done', vIsBallot: s.vstep==='ballot',
+      vtoken: s.vtoken, vname: s.vname, hasVerr: !!s.verr, verr: s.verr,
+      onTokenChange: this.onTokenChange, onTokenKey: this.onTokenKey, doVerify: this.doVerify,
+      progressSegments, vidxDisplay: s.vidx+1, currentTitle, currentHint, currentOptions,
+      onBallotNext: this.onBallotNext, cannotProceed, proceedLabel: last?'Submit ballot':'Next', proceedOpacity: cannotProceed?0.4:1
+    };
+  }
+}
+</script>
+</body>
+</html>

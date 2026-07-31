@@ -1,0 +1,24 @@
+/* Hover / focus states from the prototype's style-hover / style-focus attributes.
+   Inline styles win over classes, so the changing properties live only here. */
+
+.land-admin {
+  border: 1px solid rgba(33, 31, 26, 0.13);
+  box-shadow: 0 1px 2px rgba(33, 31, 26, 0.05);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.land-admin:hover {
+  border-color: rgba(33, 31, 26, 0.28);
+  box-shadow: 0 6px 20px rgba(33, 31, 26, 0.08);
+}
+
+.land-voter {
+  background: #1f3a5f;
+  transition: background 0.15s;
+}
+.land-voter:hover {
+  background: #173050;
+}
+
+.focus-navy:focus {
+  border-color: #1f3a5f !important;
+}
