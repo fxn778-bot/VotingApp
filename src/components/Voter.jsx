@@ -93,8 +93,12 @@ export default function Voter({ state, actions }) {
                 marginBottom: 16,
               }}
             />
-            <button onClick={actions.doVerify} style={primaryBtn}>
-              Verify &amp; open ballot
+            <button
+              onClick={actions.doVerify}
+              disabled={state.busy}
+              style={{ ...primaryBtn, opacity: state.busy ? 0.5 : 1 }}
+            >
+              {state.busy ? "Checking…" : "Verify & open ballot"}
             </button>
           </div>
         )}
@@ -246,10 +250,14 @@ export default function Voter({ state, actions }) {
 
             <button
               onClick={actions.ballotNext}
-              disabled={cannotProceed}
-              style={{ ...primaryBtn, marginTop: 12, opacity: cannotProceed ? 0.4 : 1 }}
+              disabled={cannotProceed || state.busy}
+              style={{
+                ...primaryBtn,
+                marginTop: 12,
+                opacity: cannotProceed || state.busy ? 0.4 : 1,
+              }}
             >
-              {last ? "Submit ballot" : "Next"}
+              {state.busy ? "Submitting…" : last ? "Submit ballot" : "Next"}
             </button>
           </div>
         )}

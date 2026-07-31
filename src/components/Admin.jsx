@@ -28,7 +28,7 @@ function tabStyle(active) {
   };
 }
 
-export default function Admin({ state, stats, actions }) {
+export default function Admin({ state, stats, actions, isLive }) {
   const { cfg, phase, tab } = state;
   return (
     <>
@@ -65,16 +65,43 @@ export default function Admin({ state, stats, actions }) {
             <span style={phaseBadge(color.greenSoft, color.green)}>Voting open</span>
           )}
           {phase === "closed" && <span style={phaseBadge(color.amberSoft, color.amber)}>Closed</span>}
-          <button
-            onClick={actions.goLand}
-            style={{ ...btn, fontSize: 12, padding: "7px 12px", borderRadius: 8 }}
-          >
-            ← Exit
-          </button>
+          {isLive ? (
+            <button
+              onClick={actions.signOut}
+              title={state.adminEmail || ""}
+              style={{ ...btn, fontSize: 12, padding: "7px 12px", borderRadius: 8 }}
+            >
+              Sign out
+            </button>
+          ) : (
+            <button
+              onClick={actions.goLand}
+              style={{ ...btn, fontSize: 12, padding: "7px 12px", borderRadius: 8 }}
+            >
+              ← Exit
+            </button>
+          )}
         </div>
       </div>
 
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "22px 20px 70px" }}>
+        {!isLive && (
+          <div
+            style={{
+              padding: "11px 14px",
+              borderRadius: 10,
+              fontSize: 12.5,
+              marginBottom: 16,
+              background: color.amberSoft,
+              color: color.amber,
+              lineHeight: 1.55,
+            }}
+          >
+            <strong>Demo mode — do not run a real meeting like this.</strong> No meeting server is
+            configured, so votes stay in this one browser and members on their own phones cannot
+            reach this ballot. See <code>supabase/SETUP.md</code>.
+          </div>
+        )}
         <div
           style={{
             display: "flex",

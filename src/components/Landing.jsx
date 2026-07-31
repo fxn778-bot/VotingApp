@@ -1,6 +1,6 @@
 import { color, serif, mono } from "../theme";
 
-export default function Landing({ cfg, onAdmin, onVoter }) {
+export default function Landing({ cfg, isLive, onAdmin, onVoter }) {
   return (
     <div
       style={{
@@ -131,24 +131,45 @@ export default function Landing({ cfg, onAdmin, onVoter }) {
           </span>
         </button>
 
-        <div
-          style={{
-            textAlign: "left",
-            marginTop: 26,
-            padding: "13px 15px",
-            borderRadius: 10,
-            background: color.soft,
-            fontSize: 12,
-            color: color.ink2,
-            lineHeight: 1.6,
-          }}
-        >
-          Demo mode — all data lives in this browser only. Try the sample token{" "}
-          <strong style={{ color: color.ink, fontFamily: mono, letterSpacing: ".05em" }}>
-            WBN-206
-          </strong>{" "}
-          (Sam Okafor, not yet voted) on the voter side.
-        </div>
+        {/* Which backend is in use is stated plainly. Running a real AGM while
+            silently in demo mode would lose every vote cast in the room. */}
+        {isLive ? (
+          <div
+            style={{
+              textAlign: "left",
+              marginTop: 26,
+              padding: "13px 15px",
+              borderRadius: 10,
+              background: color.greenSoft,
+              fontSize: 12,
+              color: color.green,
+              lineHeight: 1.6,
+            }}
+          >
+            <strong>Live meeting.</strong> Ballots are recorded on the meeting server and counted
+            across every device in the room.
+          </div>
+        ) : (
+          <div
+            style={{
+              textAlign: "left",
+              marginTop: 26,
+              padding: "13px 15px",
+              borderRadius: 10,
+              background: color.soft,
+              fontSize: 12,
+              color: color.ink2,
+              lineHeight: 1.6,
+            }}
+          >
+            <strong style={{ color: color.ink }}>Demo mode</strong> — all data lives in this browser
+            only, and nothing syncs between devices. Try the sample token{" "}
+            <strong style={{ color: color.ink, fontFamily: mono, letterSpacing: ".05em" }}>
+              WBN-206
+            </strong>{" "}
+            (Sam Okafor, not yet voted) on the voter side.
+          </div>
+        )}
       </div>
     </div>
   );

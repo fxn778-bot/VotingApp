@@ -8,6 +8,29 @@ npm run dev      # local dev server
 npm run build    # production build in dist/
 ```
 
+## Running a real meeting
+
+Out of the box the app runs in **demo mode**: everything stays in one browser
+and nothing syncs between devices. That is fine for trying it out and useless
+for an actual AGM.
+
+For a real meeting, connect it to Supabase — **[supabase/SETUP.md](supabase/SETUP.md)**
+covers the whole thing: creating the project, running
+[`supabase/schema.sql`](supabase/schema.sql), creating admin accounts, a
+rehearsal checklist, a run sheet for the day, reconciliation queries, and what
+to do when something goes wrong.
+
+The landing screen always states which mode it is in — *Live meeting* in green,
+or *Demo mode*. Check it before you start.
+
+Two things that catch people out:
+
+- **Settings are baked in at build time.** After editing `.env.local` you must
+  run `npm run build` again, or the old settings stay live.
+- **Admins must sign in.** The database grants write access only to
+  authenticated users, so the admin panel is gated behind a login. You create
+  those accounts in the Supabase dashboard; there is no sign-up in the app.
+
 Three surfaces, all in one page app (`src/`):
 
 - **Landing** — choose Administrator or "Cast my vote".
