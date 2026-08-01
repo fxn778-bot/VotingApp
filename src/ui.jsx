@@ -156,3 +156,61 @@ export function StatTiles({ tiles }) {
     </div>
   );
 }
+
+// In-app replacement for the native window.confirm() dialog. Native browser
+// confirm() dialogs block the whole page until dismissed and cannot be
+// styled, which is jarring for a destructive admin action. This renders
+// inline instead so clearing the register / resetting votes gets a real,
+// on-brand confirmation step.
+export function ConfirmModal({ message, onConfirm, onCancel, busy }) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(33,31,26,.45)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 100,
+        padding: 20,
+      }}
+      role="alertdialog"
+      aria-modal="true"
+    >
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 14,
+          padding: "22px 24px",
+          maxWidth: 380,
+          width: "100%",
+          boxShadow: "0 20px 60px rgba(0,0,0,.25)",
+        }}
+      >
+        <div style={{ fontSize: 14, lineHeight: 1.55, marginBottom: 18, color: color.ink }}>
+          {message}
+        </div>
+        <div style={{ display: "flex", gap: 9, justifyContent: "flex-end" }}>
+          <button onClick={onCancel} disabled={busy} style={{ ...btn, padding: "8px 14px" }}>
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={busy}
+            style={{
+              ...btn,
+              padding: "8px 14px",
+              background: color.red,
+              color: "#fff",
+              border: "none",
+              opacity: busy ? 0.6 : 1,
+            }}
+          >
+            {busy ? "Working…" : "Confirm"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
