@@ -325,6 +325,18 @@ grant select                         on audit_events   to authenticated;
 grant execute on function cast_ballot(text, text, jsonb) to anon, authenticated;
 grant execute on function verify_token(text, text)      to anon, authenticated;
 
+-- Supabase grants anon SELECT on new public tables by default, so on a hosted
+-- project the grants above are not the whole story. RLS blocks the rows either
+-- way, but leaving the privilege in place puts the register one careless policy
+-- edit away from being readable by anyone with the public key. Revoke it so two
+-- independent things must be wrong before anything leaks. Harmless elsewhere.
+revoke select on members       from anon;
+revoke select on ballots       from anon;
+revoke select on audit_events  from anon;
+revoke select on tally         from anon;
+revoke select on participation from anon;
+-- anon KEEPS meeting_config: voters must read the ballot definition to vote.
+
 -- Tallies and turnout are for signed-in admins only (see section 5).
 grant select on tally         to authenticated;
 grant select on participation to authenticated;
