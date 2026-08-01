@@ -22,9 +22,13 @@ meeting — not in the room. Do a full rehearsal (§5) before it matters.
 > - **Security advisors** — the two ERROR-level findings are fixed. The
 >   remaining warnings are intentional; see §11.
 >
-> Still yours to do: **§3** (create the admin account — it needs the dashboard),
-> **§4** (the URL and key — as GitHub repository secrets if you deploy with the
-> workflow), and **§5** (rehearse).
+> - **§3 Administrator** — account created, email confirmed, and a successful
+>   sign-in already recorded against the project. Only one officer account
+>   exists; add more if others need the register (§3).
+>
+> Still yours to do: **§4** (the URL and key as GitHub repository secrets, if
+> you deploy with the workflow — without them the deploy silently ships demo
+> mode) and **§5** (rehearse, including step 6: clear the rehearsal data).
 
 ---
 
