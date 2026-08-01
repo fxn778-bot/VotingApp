@@ -5,7 +5,7 @@ import { joinLink } from "../utils";
 
 export default function SessionTab({ state, stats, actions }) {
   const { cfg, phase } = state;
-  const link = joinLink(cfg.org);
+  const link = joinLink();
   const met = cfg.quorum > 0 && stats.voted >= cfg.quorum;
 
   const blockers = [];

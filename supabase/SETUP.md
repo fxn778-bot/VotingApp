@@ -15,15 +15,16 @@ meeting — not in the room. Do a full rehearsal (§5) before it matters.
 >   unknown token refused, closed session refused. Verification data deleted
 >   afterwards; the register, ballots and audit log are empty and the phase is
 >   back to `setup`.
+> - **Migrations 002 and 003** — applied and verified live: the membership
+>   number alone is refused, a valid token with the wrong number is refused,
+>   failed attempts write no ballots, and the old single-credential functions
+>   are gone. Test data deleted afterwards.
 > - **Security advisors** — the two ERROR-level findings are fixed. The
 >   remaining warnings are intentional; see §11.
 >
 > Still yours to do: **§3** (create the admin account — it needs the dashboard),
-> **§4** (put the URL and key in `.env.local`, then build), and **§5** (rehearse).
->
-> **New:** run `migrations/002_member_numbers.sql` then
-> `migrations/003_two_factor.sql` before importing the register — together they
-> add membership numbers and two-factor voting. See §12.
+> **§4** (the URL and key — as GitHub repository secrets if you deploy with the
+> workflow), and **§5** (rehearse).
 
 ---
 
@@ -94,6 +95,25 @@ publish. What protects the ballot is the row-level security in `schema.sql`, not
 secrecy of this key. **Never** put the `service_role` key in the app — it
 bypasses RLS entirely.
 
+### Deploying via GitHub Actions
+
+If you deploy with the `deploy.yml` workflow, the build runs on GitHub's
+machines, not yours — so `.env.local` is not involved. The two values must
+exist as **repository secrets** or the workflow silently produces a
+**demo-mode build** and deploys it. Nothing fails; the site just quietly stops
+being a real ballot.
+
+**Settings → Secrets and variables → Actions → New repository secret**, twice:
+
+| Name | Value |
+|---|---|
+| `VITE_SUPABASE_URL` | `https://YOUR-PROJECT.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | your anon key |
+
+Push, wait for the workflow, then open the deployed site and check the landing
+screen says **"Live meeting"** in green. Do this every time you redeploy — it
+is the only visible difference between a working ballot and a broken one.
+
 ## 5. Rehearse
 
 Deploy the built `dist/` folder anywhere static (Netlify, Vercel, Cloudflare
@@ -130,7 +150,9 @@ result you cannot defend.
 
 **Opening the vote**
 
-- Project **Session**. The QR code takes members to the ballot.
+- Project **Session**. The QR code points at wherever the app is being served
+  from, so scan it yourself once from a phone before members arrive and confirm
+  it opens the ballot.
 - **Open voting.** Anyone waiting on the verification screen moves to the ballot
   automatically within a few seconds.
 - Watch *Ballots cast* climb against the quorum line.

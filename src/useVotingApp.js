@@ -302,7 +302,7 @@ export function useVotingApp() {
       await run("Resetting votes", () => backend.resetVotes(), { busy: true });
       await Promise.all([loadMeeting(), loadAdminData()]);
     },
-    copyLink: () => copyText(joinLink(state.cfg.org), "Link copied"),
+    copyLink: () => copyText(joinLink(), "Link copied"),
     printPage: () => window.print(),
 
     exportResults: () => {

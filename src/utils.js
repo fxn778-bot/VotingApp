@@ -54,9 +54,18 @@ export function uid() {
   return "i" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 }
 
-export function joinLink(orgName) {
-  const slug = (orgName || "org").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 16) || "org";
-  return `https://vote.${slug}.org/m/AGM2026`;
+// Where members are sent by the projected QR code — which is simply wherever
+// this app is being served from.
+//
+// The design prototype hard-coded a plausible-looking https://vote.<org>.org
+// address. That is fine in a mockup and catastrophic in a room: the chair
+// projects the QR code, every member scans it, and it resolves to a domain
+// nobody owns. Derived from window.location so it is always correct, on
+// GitHub Pages sub-paths as much as a custom domain.
+export function joinLink() {
+  if (typeof window === "undefined") return "";
+  const { origin, pathname } = window.location;
+  return origin + pathname.replace(/index\.html?$/i, "");
 }
 
 // Motion pass/fail: denominator excludes or includes abstentions per item config.
